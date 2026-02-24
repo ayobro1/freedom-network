@@ -1,0 +1,60 @@
+# Rust/Cargo build artifacts
+/target/
+**/target/
+**/debug/
+**/release/
+
+# Node/Tauri build artifacts
+/app/src-tauri/target/
+/app/src-tauri/target/**
+/app/src/target/
+
+# VS Code editor
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Executables and compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+~*
+
+# Secrets and env
+.env
+.env.local
+.env.*.local
+
+# Packages
+node_modules/
+dist/
+
+# Cargo generated lock (optional - keep if you want reproducible builds)
+# Cargo.lock
+
+# IDE/project files
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln
+
+# Archive files
+*.zip
+*.tar.gz
+*.7z
+
+# Other
+.npm
+.cache/
