@@ -1,0 +1,103 @@
+mod protocol;
+mod routing;
+mod encrypt;
+mod identity;
+mod utils;
+mod sites;
+mod resolver;
+mod client;
+
+use std::sync::Arc;
+use quinn::{Endpoint, ServerConfig};
+use rcgen::generate_simple_self_signed;
+use std::net::SocketAddr;
+use protocol::{DHT, NodeId, FreedomAddress};
+use routing::Router;
+use std::collections::HashMap;
+use tokio::sync::RwLock;
+use sha3::Digest;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    println!("🌐 Freedom Network Node");
+    println!("========================\n");
+
+    // Initialize node infrastructure
+    let dht = Arc::new(DHT::new());
+    let router = Arc::new(Router::new());
+    let _domain_cache: Arc<RwLock<HashMap<String, String>>> = Arc::new(RwLock::new(HashMap::new()));
+
+    // Generate node identity
+    let cert = generate_simple_self_signed(vec!["localhost".into()])?;
+    let cert_der = cert.serialize_der()?;
+    let key_der = cert.serialize_private_key_der();
+
+    // Create node ID from certificate
+    let mut hasher = sha3::Sha3_256::new();
+    hasher.update(&cert_der);
+    let node_id_hash = hasher.finalize();
+    let mut node_id_bytes = [0u8; 32];
+    node_id_bytes.copy_from_slice(&node_id_hash[..32]);
+    let node_id = NodeId(node_id_bytes);
+
+    println!("📍 Node ID: {}", hex::encode(&node_id.0[..8]));
+
+    // Set up QUIC server
+    let mut server_config = ServerConfig::with_single_cert(
+        vec![rustls::Certificate(cert_der.clone())],
+        rustls::PrivateKey(key_der)
+    )?;
+    server_config.transport = Arc::new(quinn::TransportConfig::default());
+
+    let addr: SocketAddr = "127.0.0.1:5000".parse()?;
+    let endpoint = Endpoint::server(server_config, addr)?;
+    println!("🚀 QUIC Server listening on {}", addr);
+    println!("🔐 TLS Certificate: {} bytes\n", cert_der.len());
+
+    // Register this node in the DHT
+    println!("📝 Registering node in DHT...");
+    let freedom_address = FreedomAddress {
+        domain: "node.freedom".to_string(),
+        node_id: node_id.clone(),
+        ed25519_pubkey: cert_der.clone(),
+    };
+    dht.register_domain(freedom_address.clone());
+    println!("✓ Registered: {}\n", freedom_address.domain);
+
+    // Main loop: accept incoming connections
+    println!("⏳ Waiting for connections...\n");
+    loop {
+        if let Some(conn) = endpoint.accept().await {
+            let _dht = dht.clone();
+            let _router = router.clone();
+
+            tokio::spawn(async move {
+                if let Ok(new_conn) = conn.await {
+                    println!("🔗 New connection from {}", new_conn.remote_address());
+
+                    loop {
+                        match new_conn.accept_bi().await {
+                            Ok((mut send, mut recv)) => {
+                                let mut buf = vec![0; 8192];
+                                match recv.read(&mut buf).await {
+                                    Ok(Some(n)) => {
+                                        println!("📨 Received {} bytes", n);
+                                        let response = b"ACK";
+                                        let _ = send.write_all(response).await;
+                                    }
+                                    Ok(None) => break,
+                                    Err(e) => {
+                                        eprintln!("❌ Read error: {}", e);
+                                        break;
+                                    }
+                                }
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                    println!("🔌 Connection closed");
+                }
+            });
+        }
+    }
+}
