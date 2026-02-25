@@ -1,0 +1,96 @@
+@page {
+  title = ".fdom Language Reference",
+  theme = "light",
+  author = "Freedom Network",
+  description = "Complete .fdom markup language documentation"
+}
+
+@header {
+  @heading { ".fdom Language Reference" },
+  @nav {
+    @link { href = "index.fdom", text = "Guide" },
+    @link { href = "elements.fdom", text = "Elements" },
+    @link { href = "examples.fdom", text = "Examples" }
+  }
+}
+
+@section {
+  @heading { "Getting Started with .fdom" },
+  @paragraph { "The .fdom language is a simple, secure markup language designed for the Freedom Network." },
+  
+  @heading { "Your First Document", font-size = 18 },
+  @code { 
+    """
+    @page {
+      title = "My First Page",
+      author = "Anonymous"
+    }
+    
+    @section {
+      @heading { "Hello, Freedom!" },
+      @paragraph { "Welcome to decentralized web." }
+    }
+    """ 
+  }
+}
+
+@section {
+  @heading { "Basic Structure" },
+  @paragraph { "Every .fdom document has this structure:" },
+  @ordered {
+    "@page block with metadata",
+    "@header with title and navigation",
+    "@section blocks with content",
+    "@footer with site information"
+  }
+}
+
+@section {
+  @heading { "Text Formatting" },
+  @paragraph {
+    @text { "You can use " }
+    @strong { "bold text" }
+    @text { " and " }
+    @emphasis { "italic text" }
+    @text { " for emphasis." }
+  }
+}
+
+@section {
+  @heading { "Lists" },
+  @paragraph { "Unordered lists:" },
+  @list {
+    "Item one",
+    "Item two",
+    "Item three"
+  },
+  
+  @paragraph { "Numbered lists:" },
+  @ordered {
+    "First",
+    "Second", 
+    "Third"
+  }
+}
+
+@section {
+  @heading { "Links and Media" },
+  @paragraph {
+    "Links to other pages: ",
+    @link { href = "other.fdom", text = "Example Page" }
+  },
+  @paragraph { "Images with alt text:" },
+  @image {
+    src = "screenshot.png",
+    alt = "Screenshot of Freedom Browser",
+    width = 800,
+    height = 500
+  }
+}
+
+@footer {
+  @paragraph { 
+    "Learn more at the "
+    @link { href = "docs.fdom", text = "documentation site" }
+  }
+}

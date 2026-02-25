@@ -1,0 +1,71 @@
+@page {
+  title = "Welcome to Freedom.net",
+  author = "Freedom Network",
+  description = "A decentralized, private social network",
+  lang = "en",
+  theme = "dark"
+}
+
+@header {
+  @heading { "🌐 Freedom Network" },
+  @nav {
+    @link { href = "index.fdom", text = "Home" },
+    @link { href = "about.fdom", text = "About" },
+    @link { href = "docs.fdom", text = "Docs" },
+    @link { href = "privacy.fdom", text = "Privacy" }
+  }
+}
+
+@section {
+  @heading { "Welcome to Decentralized Freedom" },
+  @paragraph { 
+    "Experience the internet as it should be. Freedom Network gives you privacy, " 
+    "security, and ownership of your data—without corporate surveillance or censorship."
+  },
+  @image {
+    src = "hero.png",
+    alt = "Freedom Network illustration showing decentralized nodes",
+    width = 600,
+    height = 400
+  }
+}
+
+@section {
+  @heading { "Why Freedom Network?" },
+  @list {
+    "End-to-end encrypted messaging by default",
+    "No central servers tracking your activity",
+    "Peer-to-peer content distribution",
+    "Registered .freedom domain names",
+    "Open-source, auditable code",
+    "Private by default, not by choice"
+  }
+}
+
+@section {
+  @heading { "Getting Started" },
+  @ordered {
+    "Download the Freedom Browser",
+    "Generate your node identity",
+    "Join the peer-to-peer network",
+    "Visit .freedom websites",
+    "Share your own content"
+  },
+  @paragraph {
+    @link { href = "docs/install.fdom", text = "Read the installation guide" }
+  }
+}
+
+@aside {
+  @heading { "Quick Stats" },
+  @box {
+    @text { "1,247 active nodes" },
+    @text { "894 .freedom domains" },
+    @text { "Zero downtime network" }
+  }
+}
+
+@footer {
+  @paragraph { "© 2026 Freedom Network Contributors. Licensed under GNU AGPLv3." },
+  @link { href = "github.freedom/freedom-network", text = "Source Code" }
+}

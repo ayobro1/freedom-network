@@ -1,6 +1,7 @@
 # Rust/Cargo build artifacts
 /target/
 **/target/
+freedom-network/fdom/target/
 **/debug/
 **/release/
 
@@ -8,6 +9,7 @@
 /app/src-tauri/target/
 /app/src-tauri/target/**
 /app/src/target/
+freedom-network/fdom/target/
 
 # VS Code editor
 .vscode/
