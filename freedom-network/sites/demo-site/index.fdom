@@ -1,0 +1,74 @@
+@page {
+  title = "Freedom Network Demo Site",
+  author = "Decentralized Demo",
+  description = "Test .fdom site running on Freedom Network",
+  theme = "dark"
+}
+
+@header {
+  @heading { "🌐 Freedom Network" },
+  @nav {
+    @link { href = "index.fdom", text = "Home" },
+    @link { href = "privacy.fdom", text = "Privacy" },
+    @link { href = "docs.fdom", text = "Docs" }
+  }
+}
+
+@section {
+  @heading { "Welcome to the Decentralized Web" },
+  @paragraph {
+    "This site is served through the Freedom Network using onion routing. "
+    "Your connection is encrypted, routed through multiple hops, and completely private."
+  }
+}
+
+@section {
+  @heading { "What Makes Freedom Different?" },
+  @list {
+    "No central servers tracking your activity",
+    "All content served peer-to-peer",
+    "Multi-hop encryption (like Tor)",
+    ".freedom domain system built-in",
+    "Content rendered locally in .fdom format",
+    "Complete privacy by default"
+  }
+}
+
+@section {
+  @heading { "How It Works" },
+  @ordered {
+    "Browser requests freedom://domain.freedom/page.fdom",
+    "Onion router selects random 3-hop circuit",
+    "Request routed through encrypted layers",
+    "Content fetched and .fdom parsed",
+    ".fdom rendered to HTML in sandbox",
+    "You view the result securely"
+  }
+}
+
+@aside {
+  @heading { "Technical Stack" },
+  @box {
+    @heading { "Backend" },
+    @list {
+      "Rust with QUIC (Quinn)",
+      "Kademlia DHT",
+      "Multi-hop onion routing",
+      "ChaCha20-Poly1305 encryption"
+    }
+  },
+  @box {
+    @heading { "Frontend" },
+    @list {
+      ".fdom markup language",
+      "HTML5 rendering",
+      "Tauri desktop app",
+      "Secure sandbox"
+    }
+  }
+}
+
+@footer {
+  @paragraph { "© 2026 Freedom Network - Making the web decentralized and private" },
+  @link { href = "https://github.com/ayobro1/freedom-network", text = "Source Code" }
+}
