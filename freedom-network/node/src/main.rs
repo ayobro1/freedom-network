@@ -6,6 +6,7 @@ mod utils;
 mod sites;
 mod resolver;
 mod client;
+mod onion;
 
 use std::sync::Arc;
 use quinn::{Endpoint, ServerConfig};
@@ -25,8 +26,8 @@ async fn main() -> anyhow::Result<()> {
     // Initialize node infrastructure
     let dht = Arc::new(DHT::new());
     let router = Arc::new(Router::new());
+    let _onion_router = Arc::new(onion::OnionRouter::new());
     let _domain_cache: Arc<RwLock<HashMap<String, String>>> = Arc::new(RwLock::new(HashMap::new()));
-
     // Generate node identity
     let cert = generate_simple_self_signed(vec!["localhost".into()])?;
     let cert_der = cert.serialize_der()?;
@@ -41,6 +42,12 @@ async fn main() -> anyhow::Result<()> {
     let node_id = NodeId(node_id_bytes);
 
     println!("📍 Node ID: {}", hex::encode(&node_id.0[..8]));
+
+    // Initialize onion routing
+    println!("🧅 Onion Routing Layer: Initialized");
+    println!("   - Multi-hop circuit support");
+    println!("   - Layer encryption (Tor-like)");
+    println!("   - Privacy-preserving routing\n");
 
     // Set up QUIC server
     let mut server_config = ServerConfig::with_single_cert(

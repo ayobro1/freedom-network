@@ -15,6 +15,9 @@ async function initTauri() {
         document.getElementById('node-status').textContent = status;
         document.getElementById('connection-status').textContent = '✓ Connected';
         
+        // Store invoke for later use
+        window.tauriInvoke = invoke;
+        
     } catch (error) {
         console.log('Tauri invoke failed:', error);
         initStandalone();
@@ -25,6 +28,54 @@ async function initTauri() {
 function initStandalone() {
     document.getElementById('node-status').textContent = '127.0.0.1:5000';
     document.getElementById('connection-status').innerHTML = '✓ Ready';
+}
+
+// Render .fdom content to HTML
+async function renderFdom(fdomSource) {
+    if (!window.tauriInvoke) {
+        console.error('Tauri not available');
+        return null;
+    }
+    
+    try {
+        const html = await window.tauriInvoke('render_fdom', { fdomSource });
+        return html;
+    } catch (error) {
+        console.error('Failed to render .fdom:', error);
+        return null;
+    }
+}
+
+// Load .fdom file from filesystem
+async function loadFdomFile(filePath) {
+    if (!window.tauriInvoke) {
+        console.error('Tauri not available');
+        return null;
+    }
+    
+    try {
+        const html = await window.tauriInvoke('load_fdom_file', { filePath });
+        return html;
+    } catch (error) {
+        console.error('Failed to load .fdom file:', error);
+        return null;
+    }
+}
+
+// Fetch and render freedom site
+async function fetchFreedomSite(domain, path) {
+    if (!window.tauriInvoke) {
+        console.error('Tauri not available');
+        return null;
+    }
+    
+    try {
+        const html = await window.tauriInvoke('fetch_freedom_site', { domain, path });
+        return html;
+    } catch (error) {
+        console.error('Failed to fetch freedom site:', error);
+        return null;
+    }
 }
 
 // Tab switching functionality
