@@ -1,4 +1,4 @@
-# 🌐 Freedom Network
+# Freedom Network
 
 **Level 4 Decentralized Network | Post-Quantum Encryption | Sovereign Web Ecosystem**
 
@@ -6,7 +6,7 @@ Freedom Network is a privacy-first, fully decentralized ecosystem designed to by
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 * **Post-Quantum Cryptography (PQC):** Identity and encryption protocols built to withstand future quantum computing threats.
 * **QUIC Transport:** Low-latency, encrypted-by-default connections for resilient peer-to-peer communication.
@@ -16,7 +16,7 @@ Freedom Network is a privacy-first, fully decentralized ecosystem designed to by
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 The project is structured into three primary components to ensure modularity and security:
 
@@ -39,7 +39,7 @@ Content packages optimized for the Freedom Network.
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```text
 freedom-network/
