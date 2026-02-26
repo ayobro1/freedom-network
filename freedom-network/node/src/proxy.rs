@@ -5,12 +5,22 @@ use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use crate::onion::OnionRouter;
 use anyhow::Result;
+
+#[derive(Clone, Debug)]
+pub struct ProxyMetrics {
+    pub bytes_sent: Arc<RwLock<u64>>,
+    pub bytes_received: Arc<RwLock<u64>>,
+    pub total_connections: Arc<RwLock<u64>>,
+    pub active_connections: Arc<RwLock<u64>>,
+}
 
 pub struct ProxyServer {
     listener: TcpListener,
     onion_router: Arc<OnionRouter>,
+    metrics: ProxyMetrics,
 }
 
 impl ProxyServer {
@@ -20,10 +30,22 @@ impl ProxyServer {
         println!("   Configure your browser proxy to: {}:{}", 
                  addr.ip(), addr.port());
         
+        let metrics = ProxyMetrics {
+            bytes_sent: Arc::new(RwLock::new(0)),
+            bytes_received: Arc::new(RwLock::new(0)),
+            total_connections: Arc::new(RwLock::new(0)),
+            active_connections: Arc::new(RwLock::new(0)),
+        };
+        
         Ok(ProxyServer {
             listener,
             onion_router,
+            metrics,
         })
+    }
+
+    pub fn get_metrics(&self) -> ProxyMetrics {
+        self.metrics.clone()
     }
 
     pub async fn run(&self) -> Result<()> {
@@ -32,15 +54,25 @@ impl ProxyServer {
             println!("👁️  Proxy connection from {}", addr);
             
             let onion = self.onion_router.clone();
+            let metrics = self.metrics.clone();
+            
             tokio::spawn(async move {
-                if let Err(e) = Self::handle_client(socket, onion).await {
+                if let Err(e) = Self::handle_client(socket, onion, metrics).await {
                     eprintln!("❌ Proxy error: {}", e);
                 }
             });
         }
     }
 
-    async fn handle_client(mut socket: TcpStream, _onion_router: Arc<OnionRouter>) -> Result<()> {
+    async fn handle_client(mut socket: TcpStream, _onion_router: Arc<OnionRouter>, metrics: ProxyMetrics) -> Result<()> {
+        // Increment active connections
+        let mut active = metrics.active_connections.write().await;
+        *active += 1;
+        let mut total = metrics.total_connections.write().await;
+        *total += 1;
+        drop(active);
+        drop(total);
+        
         let mut buffer = vec![0u8; 8192];
         
         // Read the HTTP request
@@ -48,6 +80,11 @@ impl ProxyServer {
         if n == 0 {
             return Ok(());
         }
+        
+        // Record bytes received
+        let mut recv = metrics.bytes_received.write().await;
+        *recv += n as u64;
+        drop(recv);
 
         let request = String::from_utf8_lossy(&buffer[..n]);
         
@@ -70,6 +107,12 @@ impl ProxyServer {
             // For CONNECT, we establish a tunnel
             let response = b"HTTP/1.1 200 Connection Established\r\n\r\n";
             socket.write_all(response).await?;
+            
+            // Record bytes sent
+            let mut sent = metrics.bytes_sent.write().await;
+            *sent += response.len() as u64;
+            drop(sent);
+            
             println!("🔐 CONNECT tunnel established to {}", path);
             
             // In production, here we would:
@@ -82,7 +125,11 @@ impl ProxyServer {
                 match socket.read(&mut buf).await? {
                     0 => break,
                     n => {
-                        // Traffic would be routed through onion network here
+                        // Track relayed bytes
+                        let mut recv = metrics.bytes_received.write().await;
+                        *recv += n as u64;
+                        drop(recv);
+                        
                         println!("   ↔️ Relay {} bytes through circuit", n);
                     }
                 }
@@ -92,8 +139,19 @@ impl ProxyServer {
             let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 72\r\n\r\n\
                             <html><body><h1>Freedom Network Proxy</h1><p>Connected!</p></body></html>";
             socket.write_all(response).await?;
+            
+            // Record bytes sent
+            let mut sent = metrics.bytes_sent.write().await;
+            *sent += response.len() as u64;
+            drop(sent);
+            
             println!("✓ HTTP response sent");
         }
+
+        // Decrement active connections
+        let mut active = metrics.active_connections.write().await;
+        *active = active.saturating_sub(1);
+        drop(active);
 
         Ok(())
     }

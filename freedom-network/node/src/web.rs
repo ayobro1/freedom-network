@@ -1,22 +1,30 @@
-/// Simple web dashboard server for Freedom Network
-/// Serves a basic management UI on port 9090
+/// Web dashboard server for Freedom Network management
+/// Serves real-time statistics and configuration UI
 
 use std::net::SocketAddr;
+use std::time::SystemTime;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use anyhow::Result;
+use crate::proxy::ProxyMetrics;
 
 pub struct WebDashboard {
     listener: TcpListener,
+    proxy_metrics: ProxyMetrics,
+    start_time: SystemTime,
 }
 
 impl WebDashboard {
-    pub async fn new(addr: SocketAddr) -> Result<Self> {
+    pub async fn new(addr: SocketAddr, proxy_metrics: ProxyMetrics) -> Result<Self> {
         let listener = TcpListener::bind(addr).await?;
         println!("🖥️  Web Dashboard available at http://{}", addr);
         println!("   View stats, manage VPN, configure proxy\n");
         
-        Ok(WebDashboard { listener })
+        Ok(WebDashboard { 
+            listener,
+            proxy_metrics,
+            start_time: SystemTime::now(),
+        })
     }
 
     pub async fn run(&self) -> Result<()> {
@@ -24,15 +32,22 @@ impl WebDashboard {
             let (socket, addr) = self.listener.accept().await?;
             println!("🖥️  Dashboard connection from {}", addr);
             
+            let proxy_metrics = self.proxy_metrics.clone();
+            let start_time = self.start_time;
+            
             tokio::spawn(async move {
-                if let Err(e) = Self::handle_request(socket).await {
+                if let Err(e) = Self::handle_request(socket, proxy_metrics, start_time).await {
                     eprintln!("❌ Dashboard error: {}", e);
                 }
             });
         }
     }
 
-    async fn handle_request(mut socket: TcpStream) -> Result<()> {
+    async fn handle_request(
+        mut socket: TcpStream,
+        proxy_metrics: ProxyMetrics,
+        start_time: SystemTime,
+    ) -> Result<()> {
         let mut buffer = vec![0u8; 4096];
         let n = socket.read(&mut buffer).await?;
         
@@ -57,18 +72,18 @@ impl WebDashboard {
 
         // Route requests
         let response = match (method, path) {
-            ("GET", "/") => Self::html_dashboard(),
-            ("GET", "/api/status") => Self::api_status(),
-            ("GET", "/api/config") => Self::api_config(),
-            ("GET", "/api/stats") => Self::api_stats(),
-            _ => Self::not_found(),
+            ("GET", "/") => Self::html_dashboard(&proxy_metrics, start_time).await,
+            ("GET", "/api/status") => Self::api_status(&proxy_metrics, start_time).await,
+            ("GET", "/api/config") => Self::api_config().await,
+            ("GET", "/api/stats") => Self::api_stats(&proxy_metrics).await,
+            _ => Self::not_found().await,
         };
 
         socket.write_all(response.as_bytes()).await?;
         Ok(())
     }
 
-    fn html_dashboard() -> String {
+    async fn html_dashboard(_proxy_metrics: &ProxyMetrics, _start_time: SystemTime) -> String {
         let html = r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -117,9 +132,9 @@ impl WebDashboard {
                 <div class="card-header">📍 Network Status</div>
                 <div class="card-content">
                     <div class="stat"><span class="label">Status:</span> <span class="value">Running</span></div>
-                    <div class="stat"><span class="label">Node ID:</span> <span class="value">f4e2a1b3</span></div>
-                    <div class="stat"><span class="label">Connected Peers:</span> <span class="value" id="peers">—</span></div>
-                    <div class="stat"><span class="label">Active Circuits:</span> <span class="value" id="circuits">—</span></div>
+                    <div class="stat"><span class="label">Uptime:</span> <span class="value" id="uptime">—</span></div>
+                    <div class="stat"><span class="label">Active Connections:</span> <span class="value" id="connections">—</span></div>
+                    <div class="stat"><span class="label">Total Connections:</span> <span class="value" id="totalconns">—</span></div>
                 </div>
             </div>
 
@@ -137,7 +152,7 @@ impl WebDashboard {
                 <div class="card-content">
                     <div class="stat"><span class="label">Sent:</span> <span class="value" id="sent">—</span></div>
                     <div class="stat"><span class="label">Received:</span> <span class="value" id="recv">—</span></div>
-                    <div class="stat"><span class="label">Connections:</span> <span class="value" id="conns">—</span></div>
+                    <div class="stat"><span class="label">Total:</span> <span class="value" id="total">—</span></div>
                 </div>
             </div>
         </div>
@@ -157,25 +172,48 @@ impl WebDashboard {
     </div>
 
     <script>
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function formatUptime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) return days + 'd ' + (hours % 24) + 'h';
+            if (hours > 0) return hours + 'h ' + (minutes % 60) + 'm';
+            if (minutes > 0) return minutes + 'm ' + (seconds % 60) + 's';
+            return seconds + 's';
+        }
+
         async function updateStatus() {
             try {
                 const resp = await fetch('/api/status');
                 const data = await resp.json();
-                document.getElementById('peers').textContent = data.peers_connected;
-                document.getElementById('circuits').textContent = data.active_circuits;
+                document.getElementById('uptime').textContent = formatUptime(data.uptime_ms);
+                document.getElementById('connections').textContent = data.connections_active;
+                document.getElementById('totalconns').textContent = data.connections_total;
             } catch (e) { console.error(e); }
         }
+
         async function updateStats() {
             try {
                 const resp = await fetch('/api/stats');
                 const data = await resp.json();
-                document.getElementById('sent').textContent = Math.round(data.bytes_sent / 1024) + ' KB';
-                document.getElementById('recv').textContent = Math.round(data.bytes_received / 1024) + ' KB';
-                document.getElementById('conns').textContent = data.connections_active + '/' + data.connections_total;
+                document.getElementById('sent').textContent = formatBytes(data.bytes_sent);
+                document.getElementById('recv').textContent = formatBytes(data.bytes_received);
+                document.getElementById('total').textContent = formatBytes(data.bytes_sent + data.bytes_received);
             } catch (e) { console.error(e); }
         }
-        setInterval(updateStatus, 2000);
-        setInterval(updateStats, 2000);
+
+        setInterval(updateStatus, 1000);
+        setInterval(updateStats, 1000);
         updateStatus();
         updateStats();
     </script>
@@ -189,8 +227,16 @@ impl WebDashboard {
         )
     }
 
-    fn api_status() -> String {
-        let json = r#"{"status":"running","quic_server":"127.0.0.1:5000","http_proxy":"127.0.0.1:8080","uptime_seconds":120,"peers_connected":5,"active_circuits":3,"node_id":"f4e2a1b3c5d7e9f1","version":"1.0.0"}"#;
+    async fn api_status(proxy_metrics: &ProxyMetrics, start_time: SystemTime) -> String {
+        let uptime_ms = start_time.elapsed().unwrap_or_default().as_millis() as u64;
+        let active = *proxy_metrics.active_connections.read().await;
+        let total = *proxy_metrics.total_connections.read().await;
+        
+        let json = format!(
+            r#"{{"status":"running","uptime_ms":{},"connections_active":{},"connections_total":{}}}"#,
+            uptime_ms, active, total,
+        );
+        
         format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
             json.len(),
@@ -198,8 +244,8 @@ impl WebDashboard {
         )
     }
 
-    fn api_config() -> String {
-        let json = r#"{"proxy_enabled":true,"proxy_address":"127.0.0.1:8080","quic_address":"127.0.0.1:5000","dashboard_address":"127.0.0.1:9090","dht_enabled":true,"onion_routing":true,"max_circuits":10,"circuit_hops":3}"#;
+    async fn api_config() -> String {
+        let json = r#"{"proxy_enabled":true,"proxy_address":"127.0.0.1:8080","quic_address":"127.0.0.1:5000","dashboard_address":"127.0.0.1:9090","dht_enabled":true,"onion_routing":true}"#;
         format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
             json.len(),
@@ -207,8 +253,17 @@ impl WebDashboard {
         )
     }
 
-    fn api_stats() -> String {
-        let json = r#"{"bytes_sent":1024000,"bytes_received":2048000,"packets_sent":5120,"packets_received":10240,"connections_total":8,"connections_active":3,"dht_lookups":12,"circuit_builds":5,"circuit_failures":1}"#;
+    async fn api_stats(proxy_metrics: &ProxyMetrics) -> String {
+        let sent = *proxy_metrics.bytes_sent.read().await;
+        let recv = *proxy_metrics.bytes_received.read().await;
+        let total_conn = *proxy_metrics.total_connections.read().await;
+        let active_conn = *proxy_metrics.active_connections.read().await;
+        
+        let json = format!(
+            r#"{{"bytes_sent":{},"bytes_received":{},"connections_total":{},"connections_active":{}}}"#,
+            sent, recv, total_conn, active_conn,
+        );
+        
         format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
             json.len(),
@@ -216,7 +271,7 @@ impl WebDashboard {
         )
     }
 
-    fn not_found() -> String {
+    async fn not_found() -> String {
         format!("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n")
     }
 }

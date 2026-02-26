@@ -103,9 +103,10 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    // Initialize Web Dashboard
+    // Initialize Web Dashboard with proxy metrics
+    let proxy_metrics = proxy_server.get_metrics();
     let dashboard_addr: SocketAddr = "127.0.0.1:9090".parse()?;
-    let web_dashboard = Arc::new(WebDashboard::new(dashboard_addr).await?);
+    let web_dashboard = Arc::new(WebDashboard::new(dashboard_addr, proxy_metrics).await?);
     
     println!("🖥️  Dashboard: http://127.0.0.1:9090\n");
 
