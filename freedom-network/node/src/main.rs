@@ -8,6 +8,7 @@ mod resolver;
 mod client;
 mod onion;
 mod proxy;
+mod web;
 
 use std::sync::Arc;
 use quinn::{Endpoint, ServerConfig};
@@ -19,11 +20,18 @@ use std::collections::HashMap;
 use tokio::sync::RwLock;
 use sha3::Digest;
 use proxy::ProxyServer;
+use web::WebDashboard;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Force stdout to flush immediately
+    use std::io::{self, Write};
+    let _ = io::stdout().flush();
+    
+    eprintln!("🌐 Starting Freedom Network Node...");
     println!("🌐 Freedom Network Node");
     println!("========================\n");
+    let _ = io::stdout().flush();
 
     // Initialize node infrastructure
     let dht = Arc::new(DHT::new());
@@ -92,6 +100,20 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(async move {
         if let Err(e) = proxy_clone.run().await {
             eprintln!("🔴 Proxy server error: {}", e);
+        }
+    });
+
+    // Initialize Web Dashboard
+    let dashboard_addr: SocketAddr = "127.0.0.1:9090".parse()?;
+    let web_dashboard = Arc::new(WebDashboard::new(dashboard_addr).await?);
+    
+    println!("🖥️  Dashboard: http://127.0.0.1:9090\n");
+
+    // Spawn web dashboard task
+    let web_clone = web_dashboard.clone();
+    tokio::spawn(async move {
+        if let Err(e) = web_clone.run().await {
+            eprintln!("🔴 Web dashboard error: {}", e);
         }
     });
 
