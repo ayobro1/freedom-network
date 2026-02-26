@@ -7,6 +7,7 @@ mod sites;
 mod resolver;
 mod client;
 mod onion;
+mod proxy;
 
 use std::sync::Arc;
 use quinn::{Endpoint, ServerConfig};
@@ -17,6 +18,7 @@ use routing::Router;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 use sha3::Digest;
+use proxy::ProxyServer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -26,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize node infrastructure
     let dht = Arc::new(DHT::new());
     let router = Arc::new(Router::new());
-    let _onion_router = Arc::new(onion::OnionRouter::new());
+    let onion_router = Arc::new(onion::OnionRouter::new());
     let _domain_cache: Arc<RwLock<HashMap<String, String>>> = Arc::new(RwLock::new(HashMap::new()));
     // Generate node identity
     let cert = generate_simple_self_signed(vec!["localhost".into()])?;
@@ -71,7 +73,29 @@ async fn main() -> anyhow::Result<()> {
     dht.register_domain(freedom_address.clone());
     println!("✓ Registered: {}\n", freedom_address.domain);
 
-    // Main loop: accept incoming connections
+    // Initialize HTTP Proxy Server (VPN-like interface)
+    let proxy_addr: SocketAddr = "127.0.0.1:8080".parse()?;
+    let proxy_server = Arc::new(ProxyServer::new(proxy_addr, onion_router.clone()).await?);
+    
+    println!("\n╔════════════════════════════════════════════╗");
+    println!("║     FREEDOM NETWORK VPN PROXY ACTIVE      ║");
+    println!("╠════════════════════════════════════════════╣");
+    println!("║ 📍 Proxy: http://127.0.0.1:8080           ║");
+    println!("║ 🌐 Configure your browser:                 ║");
+    println!("║    Firefox: Preferences → Network Settings ║");
+    println!("║    Chrome: Settings → Advanced → Proxy     ║");
+    println!("║    Set HTTP proxy to: 127.0.0.1:8080       ║");
+    println!("╚════════════════════════════════════════════╝\n");
+
+    // Spawn proxy server task
+    let proxy_clone = proxy_server.clone();
+    tokio::spawn(async move {
+        if let Err(e) = proxy_clone.run().await {
+            eprintln!("🔴 Proxy server error: {}", e);
+        }
+    });
+
+    // Main loop: accept incoming QUIC connections
     println!("⏳ Waiting for connections...\n");
     loop {
         if let Some(conn) = endpoint.accept().await {
