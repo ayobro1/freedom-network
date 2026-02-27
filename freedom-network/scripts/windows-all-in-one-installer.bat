@@ -12,7 +12,8 @@ set "ROOT=%CD%"
 set "DIST_DIR=%ROOT%\dist-windows"
 set "STASHED=0"
 set "SKIP_SYNC=0"
-set "NODE_EXE=%ROOT%\node\target\release\node.exe"
+set "NODE_EXE=%ROOT%\node\target\release\freedom-node.exe"
+set "NODE_EXE_FALLBACK=%ROOT%\node\target\release\node.exe"
 set "TAURI_EXE=%ROOT%\app\src-tauri\target\release\freedom-browser-tauri.exe"
 
 if /I "%~1"=="--no-sync" set "SKIP_SYNC=1"
@@ -102,8 +103,13 @@ if errorlevel 1 (
 )
 
 if not exist "%NODE_EXE%" (
-    echo [ERROR] Expected node executable not found: %NODE_EXE%
-    exit /b 1
+    if exist "%NODE_EXE_FALLBACK%" (
+        set "NODE_EXE=%NODE_EXE_FALLBACK%"
+    ) else (
+        echo [ERROR] Expected node executable not found: %NODE_EXE%
+        echo [ERROR] Fallback executable also missing: %NODE_EXE_FALLBACK%
+        exit /b 1
+    )
 )
 
 echo [6/7] Building desktop executable and NSIS installer...
