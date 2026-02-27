@@ -4,6 +4,9 @@ REM This script starts the Freedom Network node with HTTP proxy enabled
 REM Configure your browser to use: 127.0.0.1:8080 as HTTP proxy
 
 setlocal enabledelayedexpansion
+set "LAUNCH_BROWSER=0"
+
+if /I "%~1"=="--browser" set "LAUNCH_BROWSER=1"
 
 echo.
 echo ╔════════════════════════════════════════════════════════════════╗
@@ -15,13 +18,25 @@ REM Navigate to the script directory
 cd /d "%~dp0"
 
 REM Check if the node binary exists
-if not exist "node\target\release\freedom-node.exe" (
+if not exist "node\target\release\freedom-node.exe" if not exist "node\target\release\node.exe" (
     echo.
     echo [ERROR] Binary not found. Building Freedom Network...
     echo.
     cd node
     cargo build --release
     cd ..
+)
+
+if "%LAUNCH_BROWSER%"=="1" (
+    echo [*] Opening dashboard in your default browser...
+    start "" "http://127.0.0.1:9090"
+
+    if exist "app\src-tauri\target\release\freedom-browser-tauri.exe" (
+        echo [*] Launching optional Freedom Browser app...
+        start "" "app\src-tauri\target\release\freedom-browser-tauri.exe"
+    ) else (
+        echo [*] Optional Freedom Browser app not found. Build it from app\src-tauri when needed.
+    )
 )
 
 REM Start the VPN service
@@ -53,6 +68,10 @@ echo ═════════════════════════
 echo.
 
 REM Run the node binary
-node\target\release\freedom-node.exe
+if exist "node\target\release\freedom-node.exe" (
+    node\target\release\freedom-node.exe
+) else (
+    node\target\release\node.exe
+)
 
 pause

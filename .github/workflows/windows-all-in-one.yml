@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - copilot/improve-webui-design
+    tags:
+      - "v*"
   pull_request:
     branches:
       - main
@@ -34,6 +36,34 @@ jobs:
           cd freedom-network
           scripts\windows-all-in-one-installer.bat --no-sync
 
+      - name: Verify expected build outputs
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = "freedom-network"
+          $required = @(
+            "$root/FreedomNetwork-Windows-AllInOne.zip",
+            "$root/dist-windows/SHA256SUMS.txt"
+          )
+          foreach ($item in $required) {
+            if (!(Test-Path $item)) {
+              throw "Missing required build output: $item"
+            }
+          }
+
+      - name: Verify installer artifact exists
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $nsis = Get-ChildItem -Path "freedom-network/dist-windows" -Filter "*setup*.exe" -ErrorAction SilentlyContinue
+          if (-not $nsis) {
+            Write-Host "No setup-style filename found, checking for any .exe in dist-windows"
+            $anyExe = Get-ChildItem -Path "freedom-network/dist-windows" -Filter "*.exe" -ErrorAction SilentlyContinue
+            if (-not $anyExe) {
+              throw "No .exe artifacts found in dist-windows"
+            }
+          }
+
       - name: Upload all-in-one zip
         uses: actions/upload-artifact@v4
         with:
@@ -47,3 +77,20 @@ jobs:
           name: FreedomNetwork-Windows-dist
           path: freedom-network/dist-windows/
           if-no-files-found: error
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreedomNetwork-checksums
+          path: freedom-network/dist-windows/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish release assets on tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            freedom-network/FreedomNetwork-Windows-AllInOne.zip
+            freedom-network/dist-windows/SHA256SUMS.txt
+            freedom-network/dist-windows/*.exe
+            freedom-network/dist-windows/*.msi
