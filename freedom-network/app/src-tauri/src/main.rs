@@ -3,7 +3,6 @@
     windows_subsystem = "windows"
 )]
 
-use tauri::Manager;
 use fdom::FdomProcessor;
 use std::fs;
 use std::path::Path;
@@ -499,7 +498,8 @@ fn update_vpn_settings(settings: VpnSettings, state: tauri::State<'_, AppState>)
         sync_enforcement_policy(&mut runtime, false)?;
         runtime.kill_switch_active = false;
     } else {
-        sync_enforcement_policy(&mut runtime, runtime.kill_switch_active)?;
+        let keep_block_on_disconnect = runtime.kill_switch_active;
+        sync_enforcement_policy(&mut runtime, keep_block_on_disconnect)?;
     }
 
     Ok(snapshot_status(&runtime))
@@ -663,7 +663,8 @@ fn stop_vpn(state: tauri::State<'_, AppState>) -> Result<VpnStatus, String> {
         runtime.kill_switch_active = false;
     }
 
-    sync_enforcement_policy(&mut runtime, runtime.kill_switch_active)?;
+    let keep_block_on_disconnect = runtime.kill_switch_active;
+    sync_enforcement_policy(&mut runtime, keep_block_on_disconnect)?;
 
     Ok(snapshot_status(&runtime))
 }
