@@ -92,15 +92,15 @@ jobs:
           path: freedom-network/dist-windows/SHA256SUMS.txt
           if-no-files-found: error
 
-      - name: Publish release assets on tag
-        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && (inputs.release_tag != '' && inputs.release_tag || format('v0.0.0-dev-{0}', github.run_number)) || github.ref_name }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && inputs.release_tag) || format('v0.0.0-dev-{0}', github.run_number) }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
-          prerelease: ${{ github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/v') }}
-          name: ${{ github.event_name == 'workflow_dispatch' && format('Freedom Network Windows Build {0}', github.run_number) || '' }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          name: ${{ !startsWith(github.ref, 'refs/tags/v') && format('Freedom Network Windows Build {0}', github.run_number) || '' }}
           files: |
             freedom-network/FreedomNetwork-Windows-AllInOne.zip
             freedom-network/dist-windows/SHA256SUMS.txt
