@@ -26,7 +26,8 @@
                 </button>
             </nav>
             <div class="sidebar-footer">
-                <small>Connected ✓</small>
+                <div class="node-indicator" id="node-indicator"></div>
+                <small id="connection-status">Offline</small>
             </div>
         </aside>
 
@@ -48,25 +49,83 @@
             <!-- Content area -->
             <div class="content-area">
                 <div class="page" id="home-page" style="display: block;">
-                    <h1>🏠 Home</h1>
-                    <p>Welcome to Freedom Browser 🌐</p>
-                    <p>You are browsing the decentralized Freedom Network.</p>
-                    <h2>Quick Start:</h2>
+                    <h1>🏠 Freedom Network</h1>
+                    <p class="subtitle">Decentralized, private browsing powered by QUIC + onion routing</p>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">⏱️</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Uptime</div>
+                                <div class="stat-value" id="stat-uptime">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🔗</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Active Connections</div>
+                                <div class="stat-value" id="stat-active">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Total Connections</div>
+                                <div class="stat-value" id="stat-total">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⬆️</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Data Sent</div>
+                                <div class="stat-value" id="stat-sent">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⬇️</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Data Received</div>
+                                <div class="stat-value" id="stat-recv">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🔒</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Encryption</div>
+                                <div class="stat-value stat-value-sm">ChaCha20</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2>Network Endpoints</h2>
+                    <div class="endpoint-list">
+                        <div class="endpoint-row">
+                            <span class="endpoint-label">QUIC Server</span>
+                            <code>127.0.0.1:5000</code>
+                        </div>
+                        <div class="endpoint-row">
+                            <span class="endpoint-label">HTTP Proxy</span>
+                            <code>127.0.0.1:8080</code>
+                        </div>
+                        <div class="endpoint-row">
+                            <span class="endpoint-label">Dashboard</span>
+                            <code><a href="http://127.0.0.1:9090" target="_blank">127.0.0.1:9090</a></code>
+                        </div>
+                    </div>
+
+                    <h2>Quick Start</h2>
                     <ul>
                         <li>Click the tabs on the left to switch sites</li>
                         <li>Type addresses in the bar to navigate</li>
                         <li>Type <code>freedom://chat</code> or <code>freedom://example</code></li>
+                        <li>Configure your browser proxy to <code>127.0.0.1:8080</code> for VPN mode</li>
                     </ul>
-                    <h2>Status:</h2>
-                    <p>Connected to: <strong>127.0.0.1:5000</strong></p>
-                    <p>Peers: <strong>1 connected</strong></p>
                 </div>
 
                 <div class="page" id="chat-page">
                     <h1>💬 Freedom Chat</h1>
-                    <p>Welcome to Freedom Chat!</p>
-                    <p>A decentralized, peer-to-peer messaging platform.</p>
-                    <h2>Features:</h2>
+                    <p class="subtitle">A decentralized, peer-to-peer messaging platform</p>
+                    <h2>Features</h2>
                     <ul>
                         <li>End-to-end encrypted messages</li>
                         <li>No central server required</li>
@@ -78,13 +137,13 @@
 
                 <div class="page" id="example-page">
                     <h1>📖 Example Site</h1>
-                    <p>This is a demonstration site on the Freedom Network.</p>
-                    <h2>About the Freedom Network:</h2>
+                    <p class="subtitle">A demonstration site on the Freedom Network</p>
+                    <h2>About the Freedom Network</h2>
                     <p>Built on QUIC protocol with:</p>
                     <ul>
-                        <li>Multi-hop routing</li>
+                        <li>Multi-hop onion routing for privacy</li>
                         <li>Cryptographic verification</li>
-                        <li>Peer discovery</li>
+                        <li>Decentralized peer discovery (DHT)</li>
                         <li>Content distribution</li>
                     </ul>
                     <p>Visit other sites by clicking tabs or typing in the address bar</p>
@@ -95,7 +154,7 @@
             <div class="status-bar">
                 <span id="status-location">freedom://home</span>
                 <span style="flex: 1;"></span>
-                <span>🔒 Secure • 🌍 Decentralized</span>
+                <span id="status-node">🔴 Node offline</span>
             </div>
         </main>
     </div>
