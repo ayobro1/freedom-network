@@ -3,13 +3,8 @@ name: Windows All-in-One Build
 on:
   workflow_dispatch:
     inputs:
-      publish_release:
-        description: "Publish a GitHub Release from this run"
-        required: false
-        type: boolean
-        default: false
       release_tag:
-        description: "Release tag to publish (required when publish_release=true, e.g. v1.0.0)"
+        description: "Optional release tag (e.g. v1.0.0). If empty on manual run, an auto dev tag is used."
         required: false
         type: string
   push:
@@ -98,12 +93,14 @@ jobs:
           if-no-files-found: error
 
       - name: Publish release assets on tag
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && (inputs.release_tag != '' && inputs.release_tag || format('v0.0.0-dev-{0}', github.run_number)) || github.ref_name }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/v') }}
+          name: ${{ github.event_name == 'workflow_dispatch' && format('Freedom Network Windows Build {0}', github.run_number) || '' }}
           files: |
             freedom-network/FreedomNetwork-Windows-AllInOne.zip
             freedom-network/dist-windows/SHA256SUMS.txt
