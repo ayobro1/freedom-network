@@ -29,50 +29,51 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if "%SKIP_SYNC%"=="0" (
-    for /f "delims=" %%B in ('git branch --show-current') do set "BRANCH=%%B"
-    if "%BRANCH%"=="" (
-        echo [ERROR] Could not determine current git branch.
+if "%SKIP_SYNC%"=="1" goto :after_sync
+
+for /f "delims=" %%B in ('git branch --show-current') do set "BRANCH=%%B"
+if "%BRANCH%"=="" (
+    echo [ERROR] Could not determine current git branch.
+    exit /b 1
+)
+
+echo [1/7] Saving local changes if any...
+for /f "delims=" %%S in ('git stash push -u -m "windows-all-in-one-auto-stash"') do set "STASH_OUTPUT=%%S"
+echo !STASH_OUTPUT! | findstr /C:"No local changes to save" >nul
+if errorlevel 1 (
+    set "STASHED=1"
+    echo        Local changes stashed.
+) else (
+    echo        No local changes found.
+)
+
+echo [2/7] Pulling latest changes from GitHub for branch %BRANCH%...
+git fetch origin
+if errorlevel 1 (
+    echo [ERROR] git fetch failed.
+    goto :restore_and_fail
+)
+
+git pull --rebase origin %BRANCH%
+if errorlevel 1 (
+    echo [ERROR] git pull --rebase failed.
+    goto :restore_and_fail
+)
+
+echo [3/7] Reapplying stashed changes if any...
+if "%STASHED%"=="1" (
+    git stash pop
+    if errorlevel 1 (
+        echo [ERROR] Failed to reapply stashed changes. Resolve conflicts and retry.
         exit /b 1
     )
-
-    echo [1/7] Saving local changes (if any)...
-    for /f "delims=" %%S in ('git stash push -u -m "windows-all-in-one-auto-stash"') do set "STASH_OUTPUT=%%S"
-    echo !STASH_OUTPUT! | findstr /C:"No local changes to save" >nul
-    if errorlevel 1 (
-        set "STASHED=1"
-        echo        Local changes stashed.
-    ) else (
-        echo        No local changes found.
-    )
-
-    echo [2/7] Pulling latest changes from GitHub for branch %BRANCH%...
-    git fetch origin
-    if errorlevel 1 (
-        echo [ERROR] git fetch failed.
-        goto :restore_and_fail
-    )
-
-    git pull --rebase origin %BRANCH%
-    if errorlevel 1 (
-        echo [ERROR] git pull --rebase failed.
-        goto :restore_and_fail
-    )
-
-    echo [3/7] Reapplying stashed changes (if any)...
-    if "%STASHED%"=="1" (
-        git stash pop
-        if errorlevel 1 (
-            echo [ERROR] Failed to reapply stashed changes. Resolve conflicts and retry.
-            exit /b 1
-        )
-        echo        Changes reapplied successfully.
-    ) else (
-        echo        Nothing to reapply.
-    )
+    echo        Changes reapplied successfully.
 ) else (
-    echo [SYNC] Skipping git stash/pull (CI mode or --no-sync).
+    echo        Nothing to reapply.
 )
+
+:after_sync
+if "%SKIP_SYNC%"=="1" echo [SYNC] Skipping git stash/pull in CI mode or --no-sync.
 
 echo [4/7] Ensuring Tauri CLI is installed...
 cargo tauri --version >nul 2>&1
