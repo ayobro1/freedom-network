@@ -12,6 +12,8 @@ set "ROOT=%CD%"
 set "DIST_DIR=%ROOT%\dist-windows"
 set "STASHED=0"
 set "SKIP_SYNC=0"
+set "NODE_EXE=%ROOT%\node\target\release\node.exe"
+set "TAURI_EXE=%ROOT%\app\src-tauri\target\release\freedom-browser-tauri.exe"
 
 if /I "%~1"=="--no-sync" set "SKIP_SYNC=1"
 if defined GITHUB_ACTIONS set "SKIP_SYNC=1"
@@ -26,6 +28,12 @@ where cargo >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Rust/Cargo is not installed or not available in PATH.
     echo Install from https://rustup.rs and run this script again.
+    exit /b 1
+)
+
+where powershell >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] PowerShell is required for packaging and checksums.
     exit /b 1
 )
 
@@ -93,11 +101,32 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not exist "%NODE_EXE%" (
+    echo [ERROR] Expected node executable not found: %NODE_EXE%
+    exit /b 1
+)
+
 echo [6/7] Building desktop executable and NSIS installer...
 cd /d "%ROOT%\app\src-tauri"
+
+if not exist "%ROOT%\app\src-tauri\icons" mkdir "%ROOT%\app\src-tauri\icons"
+if not exist "%ROOT%\app\src-tauri\icons\icon.ico" (
+    echo [INFO] icons\icon.ico not found. Generating fallback icon for Windows build...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes = [byte[]](0,0,1,0,1,0,1,1,0,0,1,0,32,0,48,0,0,0,22,0,0,0,40,0,0,0,1,0,0,0,2,0,0,0,1,0,32,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,132,255,255,0,0,0,0); [IO.File]::WriteAllBytes('%ROOT%\app\src-tauri\icons\icon.ico',$bytes)"
+    if errorlevel 1 (
+        echo [ERROR] Failed to generate fallback icon.ico
+        exit /b 1
+    )
+)
+
 cargo tauri build
 if errorlevel 1 (
     echo [ERROR] Tauri build failed.
+    exit /b 1
+)
+
+if not exist "%TAURI_EXE%" (
+    echo [ERROR] Expected desktop executable not found: %TAURI_EXE%
     exit /b 1
 )
 
@@ -105,14 +134,26 @@ echo [7/7] Packaging all artifacts...
 if exist "%DIST_DIR%" rmdir /s /q "%DIST_DIR%"
 mkdir "%DIST_DIR%"
 
-if exist "%ROOT%\node\target\release\node.exe" copy /y "%ROOT%\node\target\release\node.exe" "%DIST_DIR%\" >nul
-if exist "%ROOT%\app\src-tauri\target\release\freedom-browser-tauri.exe" copy /y "%ROOT%\app\src-tauri\target\release\freedom-browser-tauri.exe" "%DIST_DIR%\" >nul
+copy /y "%NODE_EXE%" "%DIST_DIR%\" >nul
+copy /y "%TAURI_EXE%" "%DIST_DIR%\" >nul
 
 for %%F in ("%ROOT%\app\src-tauri\target\release\bundle\nsis\*.exe") do copy /y "%%~fF" "%DIST_DIR%\" >nul
 for %%F in ("%ROOT%\app\src-tauri\target\release\bundle\msi\*.msi") do copy /y "%%~fF" "%DIST_DIR%\" >nul
 
 if exist "%ROOT%\scripts\start-node.bat" copy /y "%ROOT%\scripts\start-node.bat" "%DIST_DIR%\" >nul
 if exist "%ROOT%\scripts\start-browser-ui.bat" copy /y "%ROOT%\scripts\start-browser-ui.bat" "%DIST_DIR%\" >nul
+if exist "%ROOT%\start-vpn.bat" copy /y "%ROOT%\start-vpn.bat" "%DIST_DIR%\" >nul
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path '%DIST_DIR%' -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { '{0}  {1}' -f $_.Hash.ToLower(), $_.Path.Substring($_.Path.LastIndexOf('\\') + 1) } | Set-Content -Path '%DIST_DIR%\SHA256SUMS.txt' -Encoding UTF8"
+if errorlevel 1 (
+    echo [ERROR] Failed to generate SHA256SUMS.txt
+    exit /b 1
+)
+
+if not exist "%DIST_DIR%\SHA256SUMS.txt" (
+    echo [ERROR] Missing checksum file after generation.
+    exit /b 1
+)
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '%DIST_DIR%\*' -DestinationPath '%ROOT%\FreedomNetwork-Windows-AllInOne.zip' -Force"
 if errorlevel 1 (
