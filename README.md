@@ -71,11 +71,18 @@ This script will:
 cd freedom-network/node
 cargo build --release
 
+cd ../app/src-tauri
+cargo tauri dev
+```
+
+Optional: build the legacy Rust browser client:
+
+```bash
 cd ../browser
 cargo build --release
 ```
 
-For the local web dashboard:
+Optional local web dashboard:
 
 ```bash
 cd ../ui

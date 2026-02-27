@@ -3,50 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freedom VPN</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Freedom — Secure Tunneling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #000000;
+            color: #f5f5f7;
+            -webkit-font-smoothing: antialiased;
+        }
+        .apple-card {
+            background: #1c1c1e;
+            border-radius: 22px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary {
+            background: #ffffff;
+            color: #000000;
+            border-radius: 980px;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            background: #e8e8ed;
+            transform: scale(1.02);
+        }
+        .power-ring {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.8s ease;
+        }
+        .power-ring.online {
+            border-color: #0071e3;
+            box-shadow: 0 0 50px rgba(0, 113, 227, 0.2);
+        }
+        input[type="checkbox"] {
+            accent-color: #0071e3;
+        }
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2386868b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+        .status-dot.online {
+            background-color: #22c55e;
+        }
+    </style>
 </head>
-<body>
-    <div class="app-shell">
-        <header class="topbar">
-            <div class="status-pill">
-                <span class="status-dot" id="status-dot"></span>
-                <span id="connection-status">Offline</span>
+<body class="flex flex-col items-center justify-center min-h-screen">
+
+    <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-screen-xl mx-auto px-6 h-12 flex items-center justify-between">
+            <span class="text-sm font-semibold tracking-tight">Freedom</span>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div id="status-dot" class="status-dot w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                    <span id="connection-status" class="text-[11px] text-[#86868b] uppercase tracking-widest font-medium">Ready</span>
+                </div>
+                <button id="refresh-btn" class="text-[12px] text-[#0071e3] hover:underline">Refresh</button>
             </div>
-            <button class="refresh-btn" id="refresh-btn" aria-label="Refresh stats">Refresh</button>
-        </header>
+        </div>
+    </nav>
 
-        <main class="main-layout">
-            <h1>Freedom VPN</h1>
-            <p class="subtitle">Private routing and local proxy metrics.</p>
+    <main class="w-full max-w-4xl px-6 py-24 space-y-16">
 
-            <div class="power-wrap">
-                <div class="power-ring" id="power-ring">
-                    <div class="power-inner" id="power-state">OFFLINE</div>
+        <section class="text-center space-y-4">
+            <h1 class="text-5xl md:text-6xl font-semibold tracking-tight">Privacy. Everywhere.</h1>
+            <p class="text-xl md:text-2xl text-[#86868b] max-w-xl mx-auto">High-performance private routing with native local proxying.</p>
+        </section>
+
+        <section class="flex flex-col items-center py-8">
+            <div class="power-ring" id="power-ring">
+                <button id="connect-btn" class="flex flex-col items-center justify-center space-y-2 group">
+                    <span id="power-state" class="text-4xl font-light tracking-tight group-hover:text-blue-500 transition-colors">Start</span>
+                    <span class="text-[10px] text-[#86868b] uppercase tracking-[0.2em]">Encrypted</span>
+                </button>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <article class="apple-card p-8">
+                <h3 class="text-lg font-medium mb-6">Configuration</h3>
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-[#86868b]">Tunnel Mode</span>
+                        <select id="mode-select" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
+                            <option value="full">Full System</option>
+                            <option value="app">Single App</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-[#86868b]">Location</span>
+                        <select id="location-select" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
+                            <option value="fastest">Fastest</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-[#86868b]">Network Protocol</span>
+                        <select id="protocol-select" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
+                            <option value="auto">Automatic</option>
+                            <option value="quic">QUIC</option>
+                            <option value="tcp">TCP</option>
+                        </select>
+                    </div>
+                    <div class="pt-4 space-y-4 border-t border-white/5">
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <span class="text-sm text-[#86868b]">Kill Switch</span>
+                            <input type="checkbox" id="kill-switch" class="w-4 h-4 rounded-full">
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <span class="text-sm text-[#86868b]">Threat Protection</span>
+                            <input type="checkbox" id="threat-protection" class="w-4 h-4 rounded-full">
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <span class="text-sm text-[#86868b]">DNS Protection</span>
+                            <input type="checkbox" id="dns-protection" class="w-4 h-4 rounded-full">
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <span class="text-sm text-[#86868b]">System Intercept (Windows)</span>
+                            <input type="checkbox" id="strict-enforcement" class="w-4 h-4 rounded-full">
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <span class="text-sm text-[#86868b]">Auto Connect</span>
+                            <input type="checkbox" id="auto-connect" class="w-4 h-4 rounded-full">
+                        </label>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-[#86868b]">Auto-Connect Rule</span>
+                        <select id="auto-connect-rule" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
+                            <option value="startup">On Startup</option>
+                            <option value="untrusted">Untrusted Wi-Fi</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <span class="text-sm text-[#86868b]">Split Tunneling (app names, one per line)</span>
+                        <textarea id="split-tunnel-apps" class="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none" rows="4" placeholder="chrome.exe
+discord.exe"></textarea>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="sync-split-btn" class="btn-primary px-4 py-2 text-sm font-medium">Apply Split Apps</button>
+                        <button id="stop-split-btn" class="btn-primary px-4 py-2 text-sm font-medium">Stop Split Apps</button>
+                    </div>
+                    <p id="split-running" class="text-xs text-[#9ca3af]">Split apps running: none</p>
+                    <button id="save-settings-btn" class="btn-primary px-4 py-2 text-sm font-medium">Save Options</button>
+                </div>
+            </article>
+
+            <article class="apple-card p-8 flex flex-col justify-between">
+                <h3 class="text-lg font-medium mb-6">Live Traffic</h3>
+                <div class="grid grid-cols-2 gap-y-8">
+                    <div>
+                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Uptime</span>
+                        <span id="stat-uptime" class="text-2xl font-light">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Active</span>
+                        <span id="stat-active" class="text-2xl font-light">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Total</span>
+                        <span id="stat-total" class="text-2xl font-light">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Sent</span>
+                        <span id="stat-sent" class="text-2xl font-light text-blue-500">—</span>
+                    </div>
+                    <div>
+                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Received</span>
+                        <span id="stat-recv" class="text-2xl font-light text-purple-400">—</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <section class="apple-card p-8 bg-[#111112]">
+            <h3 class="text-sm font-medium mb-4 text-[#86868b]">Local Proxy Gateways</h3>
+            <div class="flex flex-wrap gap-12 text-sm">
+                <div>
+                    <span class="block text-[#444] text-[10px] uppercase font-bold tracking-widest mb-1">HTTP Proxy</span>
+                    <code>127.0.0.1:8080</code>
+                </div>
+                <div>
+                    <span class="block text-[#444] text-[10px] uppercase font-bold tracking-widest mb-1">QUIC Server</span>
+                    <code>127.0.0.1:5000</code>
+                </div>
+                <div>
+                    <span class="block text-[#444] text-[10px] uppercase font-bold tracking-widest mb-1">Dashboard API</span>
+                    <code>127.0.0.1:9090</code>
                 </div>
             </div>
+        </section>
 
-            <section class="stats-row">
-                <article class="stat-card"><span class="stat-label">Uptime</span><span class="stat-value" id="stat-uptime">—</span></article>
-                <article class="stat-card"><span class="stat-label">Active</span><span class="stat-value" id="stat-active">—</span></article>
-                <article class="stat-card"><span class="stat-label">Total</span><span class="stat-value" id="stat-total">—</span></article>
-                <article class="stat-card"><span class="stat-label">Sent</span><span class="stat-value" id="stat-sent">—</span></article>
-                <article class="stat-card"><span class="stat-label">Received</span><span class="stat-value" id="stat-recv">—</span></article>
-            </section>
+        <section class="apple-card p-8">
+            <h3 class="text-sm font-medium mb-4 text-[#86868b]">Diagnostics & Profiles</h3>
+            <div class="flex flex-wrap gap-3 mb-4">
+                <button id="run-diagnostics-btn" class="btn-primary px-4 py-2 text-sm font-medium">Run Diagnostics</button>
+                <button id="export-profile-btn" class="btn-primary px-4 py-2 text-sm font-medium">Export Profile</button>
+                <label class="btn-primary px-4 py-2 text-sm font-medium cursor-pointer">
+                    Import Profile
+                    <input id="import-profile-file" type="file" accept="application/json" class="hidden" />
+                </label>
+            </div>
+            <pre id="diagnostics-output" class="text-xs text-[#9ca3af] bg-black/30 border border-white/10 rounded-xl p-3 overflow-auto">No diagnostics yet.</pre>
+        </section>
 
-            <section class="proxy-card">
-                <h2>Proxy Setup</h2>
-                <div class="endpoint-row"><span>HTTP Proxy</span><code>127.0.0.1:8080</code></div>
-                <div class="endpoint-row"><span>QUIC Server</span><code>127.0.0.1:5000</code></div>
-                <div class="endpoint-row"><span>Dashboard API</span><code>127.0.0.1:9090</code></div>
-                <ol>
-                    <li>Open browser network/proxy settings.</li>
-                    <li>Set HTTP proxy to <code>127.0.0.1</code> and port <code>8080</code>.</li>
-                    <li>Keep Freedom VPN running while browsing.</li>
-                </ol>
-            </section>
-        </main>
-    </div>
+    </main>
 
     <script src="app.js"></script>
 </body>
