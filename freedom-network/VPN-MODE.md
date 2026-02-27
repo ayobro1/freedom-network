@@ -1,10 +1,14 @@
 # Freedom Network - VPN/Proxy Mode
 
-Freedom Network now runs as a local VPN/proxy service that works with any standard web browser (Chrome, Firefox, Safari, Edge, etc.).
+Freedom Network now runs as a local VPN/proxy service. The primary experience is the desktop app in `app/`, with optional manual browser proxy setup.
 
 ## Quick Start
 
 ### 1. **Start the VPN Service**
+
+Preferred: launch via desktop app (`app/src-tauri`) and use the in-app Connect button.
+
+Alternative manual flow:
 
 Simply double-click `start-vpn.bat` (on Windows) or run:
 
@@ -16,7 +20,7 @@ cargo build --release
 
 The service will start and listen on: **http://127.0.0.1:8080**
 
-### 2. **Configure Your Browser**
+### 2. **Configure Your Browser** (manual mode)
 
 #### Firefox
 1. Open **Preferences** → **Network Settings**
