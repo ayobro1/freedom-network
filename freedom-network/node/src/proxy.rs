@@ -3,11 +3,11 @@
 
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, copy_bidirectional};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::onion::OnionRouter;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 #[derive(Clone, Debug)]
 pub struct ProxyMetrics {
@@ -72,88 +72,153 @@ impl ProxyServer {
         *total += 1;
         drop(active);
         drop(total);
-        
-        let mut buffer = vec![0u8; 8192];
-        
-        // Read the HTTP request
-        let n = socket.read(&mut buffer).await?;
-        if n == 0 {
-            return Ok(());
-        }
-        
-        // Record bytes received
-        let mut recv = metrics.bytes_received.write().await;
-        *recv += n as u64;
-        drop(recv);
 
-        let request = String::from_utf8_lossy(&buffer[..n]);
-        
-        // Parse HTTP request line (METHOD PATH VERSION)
-        let first_line = request.lines().next().unwrap_or("");
-        let parts: Vec<&str> = first_line.split_whitespace().collect();
-        
-        if parts.len() < 3 {
-            eprintln!("❌ Invalid HTTP request");
-            return Ok(());
-        }
-
-        let method = parts[0];
-        let path = parts[1];
-        
-        println!("📍 {} {}", method, path);
-
-        // Handle CONNECT (HTTPS tunneling)
-        if method == "CONNECT" {
-            // For CONNECT, we establish a tunnel
-            let response = b"HTTP/1.1 200 Connection Established\r\n\r\n";
-            socket.write_all(response).await?;
-            
-            // Record bytes sent
-            let mut sent = metrics.bytes_sent.write().await;
-            *sent += response.len() as u64;
-            drop(sent);
-            
-            println!("🔐 CONNECT tunnel established to {}", path);
-            
-            // In production, here we would:
-            // 1. Parse the destination from path
-            // 2. Build an onion circuit through the network
-            // 3. Relay traffic bidirectionally
-            // For now, just keep connection alive
-            let mut buf = vec![0u8; 4096];
-            loop {
-                match socket.read(&mut buf).await? {
-                    0 => break,
-                    n => {
-                        // Track relayed bytes
-                        let mut recv = metrics.bytes_received.write().await;
-                        *recv += n as u64;
-                        drop(recv);
-                        
-                        println!("   ↔️ Relay {} bytes through circuit", n);
-                    }
-                }
+        let session_result = async {
+            let mut buffer = vec![0u8; 8192];
+            let n = socket.read(&mut buffer).await?;
+            if n == 0 {
+                return Ok(());
             }
-        } else {
-            // Handle regular HTTP (GET, POST, etc.)
-            let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 72\r\n\r\n\
-                            <html><body><h1>Freedom Network Proxy</h1><p>Connected!</p></body></html>";
-            socket.write_all(response).await?;
-            
-            // Record bytes sent
-            let mut sent = metrics.bytes_sent.write().await;
-            *sent += response.len() as u64;
-            drop(sent);
-            
-            println!("✓ HTTP response sent");
-        }
 
-        // Decrement active connections
+            let mut recv = metrics.bytes_received.write().await;
+            *recv += n as u64;
+            drop(recv);
+
+            let request = String::from_utf8_lossy(&buffer[..n]).to_string();
+            let first_line = request.lines().next().unwrap_or("");
+            let parts: Vec<&str> = first_line.split_whitespace().collect();
+            if parts.len() < 3 {
+                return Err(anyhow!("Invalid HTTP request line"));
+            }
+
+            let method = parts[0];
+            let path = parts[1];
+            println!("📍 {} {}", method, path);
+
+            if method.eq_ignore_ascii_case("CONNECT") {
+                let target = Self::normalize_connect_target(path);
+                let mut upstream = TcpStream::connect(&target).await?;
+
+                let response = b"HTTP/1.1 200 Connection Established\r\n\r\n";
+                socket.write_all(response).await?;
+
+                let mut sent = metrics.bytes_sent.write().await;
+                *sent += response.len() as u64;
+                drop(sent);
+
+                println!("🔐 CONNECT tunnel established to {}", target);
+                let (client_to_upstream, upstream_to_client) = copy_bidirectional(&mut socket, &mut upstream).await?;
+
+                let mut recv = metrics.bytes_received.write().await;
+                *recv += client_to_upstream;
+                drop(recv);
+
+                let mut sent = metrics.bytes_sent.write().await;
+                *sent += upstream_to_client;
+                drop(sent);
+            } else {
+                let target = Self::extract_http_target(path, &request)?;
+                let rewritten = Self::rewrite_request_line(&request)?;
+
+                let mut upstream = TcpStream::connect(&target).await?;
+                upstream.write_all(rewritten.as_bytes()).await?;
+
+                let (client_to_upstream, upstream_to_client) = copy_bidirectional(&mut socket, &mut upstream).await?;
+
+                let mut recv = metrics.bytes_received.write().await;
+                *recv += client_to_upstream;
+                drop(recv);
+
+                let mut sent = metrics.bytes_sent.write().await;
+                *sent += upstream_to_client;
+                drop(sent);
+
+                println!("✓ Forwarded HTTP request through {}", target);
+            }
+
+            Ok(())
+        }
+        .await;
+
         let mut active = metrics.active_connections.write().await;
         *active = active.saturating_sub(1);
         drop(active);
 
-        Ok(())
+        session_result
+    }
+
+    fn normalize_connect_target(path: &str) -> String {
+        if path.contains(':') {
+            path.to_string()
+        } else {
+            format!("{}:443", path)
+        }
+    }
+
+    fn extract_http_target(path: &str, request: &str) -> Result<String> {
+        if let Some(stripped) = path.strip_prefix("http://") {
+            let host_port = stripped.split('/').next().unwrap_or("");
+            if host_port.is_empty() {
+                return Err(anyhow!("Missing host in absolute URL"));
+            }
+            if host_port.contains(':') {
+                return Ok(host_port.to_string());
+            }
+            return Ok(format!("{}:80", host_port));
+        }
+
+        if let Some(stripped) = path.strip_prefix("https://") {
+            let host_port = stripped.split('/').next().unwrap_or("");
+            if host_port.is_empty() {
+                return Err(anyhow!("Missing host in absolute URL"));
+            }
+            if host_port.contains(':') {
+                return Ok(host_port.to_string());
+            }
+            return Ok(format!("{}:443", host_port));
+        }
+
+        for line in request.lines() {
+            if line.to_ascii_lowercase().starts_with("host:") {
+                let host = line[5..].trim();
+                if host.is_empty() {
+                    return Err(anyhow!("Host header is empty"));
+                }
+                if host.contains(':') {
+                    return Ok(host.to_string());
+                }
+                return Ok(format!("{}:80", host));
+            }
+        }
+
+        Err(anyhow!("Missing Host header for HTTP request"))
+    }
+
+    fn rewrite_request_line(request: &str) -> Result<String> {
+        let mut lines = request.splitn(2, "\r\n");
+        let first_line = lines.next().ok_or_else(|| anyhow!("Missing request line"))?;
+        let remainder = lines.next().unwrap_or("");
+
+        let parts: Vec<&str> = first_line.split_whitespace().collect();
+        if parts.len() < 3 {
+            return Err(anyhow!("Invalid request line"));
+        }
+
+        let method = parts[0];
+        let path = parts[1];
+        let version = parts[2];
+
+        let new_path = if let Some(stripped) = path.strip_prefix("http://") {
+            let suffix = stripped.split_once('/').map(|(_, tail)| tail).unwrap_or("");
+            if suffix.is_empty() { "/".to_string() } else { format!("/{}", suffix) }
+        } else if let Some(stripped) = path.strip_prefix("https://") {
+            let suffix = stripped.split_once('/').map(|(_, tail)| tail).unwrap_or("");
+            if suffix.is_empty() { "/".to_string() } else { format!("/{}", suffix) }
+        } else {
+            path.to_string()
+        };
+
+        Ok(format!("{} {} {}\r\n{}", method, new_path, version, remainder))
     }
 }
 

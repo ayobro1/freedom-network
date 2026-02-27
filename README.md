@@ -1,8 +1,8 @@
 # Freedom Network
 
-**Level 4 Decentralized Network | Post-Quantum Encryption | Sovereign Web Ecosystem**
+**Desktop-First Private Routing | Decentralized Node | Secure Local Tunneling**
 
-Freedom Network is a privacy-first, fully decentralized ecosystem designed to bypass the limitations and surveillance of the traditional web. It consists of a high-performance routing node and a custom-built browser that operates independently of Chromium or WebKit engines.
+Freedom Network is a privacy-first ecosystem for local secure tunneling and decentralized routing. It includes a Rust node runtime, a desktop Tauri control app, and supporting browser/content tooling.
 
 ---
 
@@ -10,7 +10,7 @@ Freedom Network is a privacy-first, fully decentralized ecosystem designed to by
 
 * **Post-Quantum Cryptography (PQC):** Identity and encryption protocols built to withstand future quantum computing threats.
 * **QUIC Transport:** Low-latency, encrypted-by-default connections for resilient peer-to-peer communication.
-* **Sovereign Browser:** A native GUI built with the **Iced** framework, removing heavy dependencies on centralized browser engines.
+* **Desktop VPN Control App:** Native Tauri application with one-click connect/disconnect, diagnostics, split tunneling, and profile import/export.
 * **Native .fdom Rendering:** Support for proprietary `.fdom` files—decentralized "sites" that are decrypted and rendered entirely in memory.
 * **Onion Routing:** Multi-hop path selection to obfuscate traffic origin and destination metadata.
 
@@ -18,7 +18,7 @@ Freedom Network is a privacy-first, fully decentralized ecosystem designed to by
 
 ## System Architecture
 
-The project is structured into three primary components to ensure modularity and security:
+The project is structured into three primary components to keep networking, desktop UX, and content tooling modular:
 
 ### 1. The Node (`/node`)
 The backbone of the network, written in **Rust**.
@@ -26,13 +26,13 @@ The backbone of the network, written in **Rust**.
 * Manages encrypted tunnels using the **QUIC** protocol.
 * Performs PQC key exchanges for secure, long-term communication.
 
-### 2. The Browser (`/browser`)
-A lightweight, modern interface built using the **Iced** framework.
-* **Native Rendering:** Directly renders `.fdom` content without a standard web engine.
-* **Integrated P2P Chat:** Real-time messaging functionality baked directly into the browser core.
-* **Privacy First:** No cookies, no tracking, and no centralized DNS lookups.
+### 2. The Desktop App (`/app`)
+A Tauri-based desktop VPN controller and local diagnostics UI.
+* Start/stop node runtime from the app.
+* Configure full-tunnel vs app-only routing modes.
+* Apply Windows interception mode, kill switch, and split tunnel controls.
 
-### 3. Freedom Sites (`/sites`)
+### 3. Browser + Sites (`/browser`, `/sites`)
 Content packages optimized for the Freedom Network.
 * Includes examples like a decentralized chat-site.
 * Assets (CSS/JS) are signed and verified to prevent middle-man injection or tampering.
@@ -71,11 +71,18 @@ This script will:
 cd freedom-network/node
 cargo build --release
 
+cd ../app/src-tauri
+cargo tauri dev
+```
+
+Optional: build the legacy Rust browser client:
+
+```bash
 cd ../browser
 cargo build --release
 ```
 
-For the local web dashboard:
+Optional local web dashboard:
 
 ```bash
 cd ../ui
@@ -88,9 +95,10 @@ python3 server.py
 
 ```text
 freedom-network/
-├── node/                # Rust: QUIC node, PQC encryption, DHT routing
-├── browser/             # Rust: Iced-based UI, .fdom renderer, P2P logic
-├── sites/               # Hosted .freedom content (e.g., chat-site)
-├── scripts/             # Automation: setup.bat, package-site.js
-├── ARCHITECTURE.md      # Detailed technical specifications
+├── node/                # Rust node runtime: proxy + routing + dashboard APIs
+├── app/                 # Tauri desktop VPN control app (primary UX)
+├── browser/             # Legacy Rust browser client modules
+├── sites/               # Example content packages
+├── scripts/             # Build/packaging automation
+├── ARCHITECTURE.md      # Technical architecture notes
 └── README.md            # Project overview
