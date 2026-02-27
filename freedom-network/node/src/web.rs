@@ -90,132 +90,73 @@ impl WebDashboard {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freedom Network — Dashboard</title>
+    <title>Freedom VPN</title>
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg: #0a0e27; --bg2: #151b3d; --bg3: #1e2749;
-            --text: #e0e6ff; --muted: #a0a6c3;
-            --blue: #4a9eff; --purple: #7c3aed; --green: #10b981;
-            --border: #2d3547;
+            --bg: #000000; --surface: #1c1c1e; --surface-2: #2c2c2e;
+            --text: #f5f5f7; --muted: #a1a1aa; --accent: #0a84ff;
+            --ok: #30d158; --bad: #ff453a; --border: #3a3a3c;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-        a { color: var(--blue); text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        code { background: var(--bg3); padding: 2px 7px; border-radius: 4px; font-family: 'Courier New', monospace; color: var(--blue); font-size: 13px; }
-
-        /* Layout */
-        .shell { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
-
-        /* Header */
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; flex-wrap: wrap; gap: 16px; }
-        .brand { display: flex; align-items: center; gap: 14px; }
-        .brand-icon { font-size: 36px; }
-        .brand-title { font-size: 1.7em; font-weight: 700; background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .brand-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
-        .badge { display: flex; align-items: center; gap: 8px; padding: 8px 18px; background: var(--bg2); border: 1px solid var(--green); border-radius: 20px; font-size: 13px; color: var(--green); }
-        .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(16,185,129,0); } }
-
-        /* Stat banner */
-        .stat-banner { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 32px; }
-        .stat-tile { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.2s; }
-        .stat-tile:hover { border-color: var(--blue); }
-        .stat-tile-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-tile-value { font-size: 22px; font-weight: 700; color: var(--blue); }
-
-        /* Cards */
-        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 32px; }
-        .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .card-head { padding: 14px 20px; background: var(--bg3); font-weight: 600; font-size: 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-        .card-body { padding: 20px; }
-        .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .row:last-child { border: none; padding-bottom: 0; }
-        .row-label { color: var(--muted); }
-        .row-value { font-weight: 600; color: var(--blue); }
-
-        /* Setup */
-        .setup { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 32px; }
-        .setup h2 { font-size: 15px; font-weight: 700; margin-bottom: 18px; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; }
-        .steps { display: flex; flex-direction: column; gap: 14px; }
-        .step { display: flex; gap: 14px; align-items: flex-start; }
-        .step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-top: 2px; }
-        .step-text { font-size: 14px; color: var(--muted); line-height: 1.5; }
-        .step-text strong { color: var(--text); }
-
-        footer { text-align: center; padding: 28px 0 8px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .shell { max-width: 980px; margin: 0 auto; padding: 28px 20px 36px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .status-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; font-size: 13px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--bad); }
+        .status-dot.online { background: var(--ok); box-shadow: 0 0 0 6px rgba(48, 209, 88, 0.16); }
+        h1 { font-size: 34px; font-weight: 700; margin-bottom: 6px; }
+        .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+        .power-wrap { display: flex; justify-content: center; margin: 12px 0 24px; }
+        .power-ring { width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(from 0deg, var(--bad), #632525 70%); display: grid; place-items: center; }
+        .power-ring.online { background: conic-gradient(from 0deg, var(--ok), #216132 70%); }
+        .power-inner { width: 156px; height: 156px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; font-size: 18px; font-weight: 700; }
+        .stats-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .stat-value { color: var(--accent); font-size: 17px; font-weight: 700; }
+        .proxy-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+        .proxy-card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; color: var(--accent); }
+        .endpoint-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .endpoint-row:last-of-type { margin-bottom: 10px; }
+        code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; color: #8ec8ff; font-size: 12px; }
+        ol { margin-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+        a { color: #8ec8ff; }
+        @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     </style>
 </head>
 <body>
     <div class="shell">
-        <div class="header">
-            <div class="brand">
-                <div class="brand-icon">🌐</div>
-                <div>
-                    <div class="brand-title">Freedom Network</div>
-                    <div class="brand-sub">Decentralized VPN &amp; Proxy</div>
-                </div>
-            </div>
-            <div class="badge"><span class="dot"></span> Running</div>
+        <div class="topbar">
+            <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="connection-status">Offline</span></div>
+        </div>
+        <h1>Freedom VPN</h1>
+        <p class="subtitle">Private routing and local proxy metrics.</p>
+
+        <div class="power-wrap">
+            <div class="power-ring" id="power-ring"><div class="power-inner" id="power-state">OFFLINE</div></div>
         </div>
 
-        <div class="stat-banner">
-            <div class="stat-tile">
-                <div class="stat-tile-label">⏱ Uptime</div>
-                <div class="stat-tile-value" id="uptime">—</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-tile-label">🔗 Active</div>
-                <div class="stat-tile-value" id="connections">—</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-tile-label">📊 Total</div>
-                <div class="stat-tile-value" id="totalconns">—</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-tile-label">⬆ Sent</div>
-                <div class="stat-tile-value" id="sent">—</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-tile-label">⬇ Received</div>
-                <div class="stat-tile-value" id="recv">—</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-tile-label">🔀 Total Transfer</div>
-                <div class="stat-tile-value" id="total">—</div>
-            </div>
-        </div>
+        <section class="stats-row">
+            <article class="stat-card"><span class="stat-label">Uptime</span><span class="stat-value" id="uptime">—</span></article>
+            <article class="stat-card"><span class="stat-label">Active</span><span class="stat-value" id="connections">—</span></article>
+            <article class="stat-card"><span class="stat-label">Total</span><span class="stat-value" id="totalconns">—</span></article>
+            <article class="stat-card"><span class="stat-label">Sent</span><span class="stat-value" id="sent">—</span></article>
+            <article class="stat-card"><span class="stat-label">Received</span><span class="stat-value" id="recv">—</span></article>
+        </section>
 
-        <div class="cards">
-            <div class="card">
-                <div class="card-head">🔐 Endpoints</div>
-                <div class="card-body">
-                    <div class="row"><span class="row-label">HTTP Proxy</span> <code>127.0.0.1:8080</code></div>
-                    <div class="row"><span class="row-label">QUIC Server</span> <code>127.0.0.1:5000</code></div>
-                    <div class="row"><span class="row-label">Dashboard</span> <code>127.0.0.1:9090</code></div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-head">🛡 Security</div>
-                <div class="card-body">
-                    <div class="row"><span class="row-label">Cipher</span> <span class="row-value">ChaCha20-Poly1305</span></div>
-                    <div class="row"><span class="row-label">Transport</span> <span class="row-value">QUIC / TLS 1.3</span></div>
-                    <div class="row"><span class="row-label">Routing</span> <span class="row-value">Onion (multi-hop)</span></div>
-                    <div class="row"><span class="row-label">Discovery</span> <span class="row-value">DHT</span></div>
-                </div>
-            </div>
-        </div>
+        <section class="proxy-card">
+            <h2>Proxy Setup</h2>
+            <div class="endpoint-row"><span>HTTP Proxy</span><code>127.0.0.1:8080</code></div>
+            <div class="endpoint-row"><span>QUIC Server</span><code>127.0.0.1:5000</code></div>
+            <div class="endpoint-row"><span>Dashboard API</span><code>127.0.0.1:9090</code></div>
+            <ol>
+                <li>Open browser network/proxy settings.</li>
+                <li>Set HTTP proxy to <code>127.0.0.1</code> and port <code>8080</code>.</li>
+                <li>Keep Freedom VPN running while browsing.</li>
+            </ol>
+        </section>
 
-        <div class="setup">
-            <h2>🔧 Configure Your Browser</h2>
-            <div class="steps">
-                <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Firefox:</strong> Settings → Network Settings → Manual proxy configuration → HTTP Proxy: <code>127.0.0.1</code>, Port: <code>8080</code></div></div>
-                <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Chrome / Edge:</strong> Settings → Advanced → System → Open proxy settings → Manual proxy → <code>127.0.0.1:8080</code></div></div>
-                <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Safari / macOS:</strong> System Settings → Network → Advanced → Proxies → Web Proxy (HTTP) → <code>127.0.0.1:8080</code></div></div>
-            </div>
-        </div>
-
-        <footer>Freedom Network v1.0 &nbsp;|&nbsp; GNU AGPLv3 &nbsp;|&nbsp; <a href="https://github.com/ayobro1/freedom-network" target="_blank">GitHub</a></footer>
+        <footer style="margin-top:16px;color:var(--muted);font-size:12px;">Freedom VPN Dashboard &nbsp;|&nbsp; <a href="https://github.com/ayobro1/freedom-network" target="_blank">GitHub</a></footer>
     </div>
 
     <script>
@@ -232,6 +173,24 @@ impl WebDashboard {
             if (m > 0) return m + 'm ' + (s % 60) + 's';
             return s + 's';
         }
+        function setOnline(online) {
+            const dot = document.getElementById('status-dot');
+            const status = document.getElementById('connection-status');
+            const ring = document.getElementById('power-ring');
+            const state = document.getElementById('power-state');
+            if (online) {
+                dot.classList.add('online');
+                status.textContent = 'Online';
+                ring.classList.add('online');
+                state.textContent = 'ONLINE';
+            } else {
+                dot.classList.remove('online');
+                status.textContent = 'Offline';
+                ring.classList.remove('online');
+                state.textContent = 'OFFLINE';
+            }
+        }
+
         async function refresh() {
             try {
                 const [sr, dr] = await Promise.all([fetch('/api/status'), fetch('/api/stats')]);
@@ -241,10 +200,13 @@ impl WebDashboard {
                 document.getElementById('totalconns').textContent = s.connections_total;
                 document.getElementById('sent').textContent = formatBytes(d.bytes_sent);
                 document.getElementById('recv').textContent = formatBytes(d.bytes_received);
-                document.getElementById('total').textContent = formatBytes(d.bytes_sent + d.bytes_received);
-            } catch(e) { console.error(e); }
+                setOnline(true);
+            } catch(e) {
+                setOnline(false);
+                console.error(e);
+            }
         }
-        setInterval(refresh, 1000);
+        setInterval(refresh, 2000);
         refresh();
     </script>
 </body>

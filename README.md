@@ -39,6 +39,51 @@ Content packages optimized for the Freedom Network.
 
 ---
 
+## Installation
+
+### Prerequisites
+
+* **Git**
+* **Rust (stable toolchain + Cargo):** https://rustup.rs
+* **Windows only (desktop app packaging):** PowerShell and standard Visual Studio C++ build tools
+
+### Windows (All-in-One Build + Package)
+
+From the repository root:
+
+```bat
+cd freedom-network
+scripts\windows-all-in-one-installer.bat
+```
+
+This script will:
+
+* Pull latest changes (unless run in CI or with `--no-sync`)
+* Build release binaries
+* Build the desktop installer
+* Produce:
+	* `freedom-network\dist-windows\`
+	* `freedom-network\FreedomNetwork-Windows-AllInOne.zip`
+
+### Manual Development Setup (Any OS)
+
+```bash
+cd freedom-network/node
+cargo build --release
+
+cd ../browser
+cargo build --release
+```
+
+For the local web dashboard:
+
+```bash
+cd ../ui
+python3 server.py
+```
+
+---
+
 ##  Repository Structure
 
 ```text

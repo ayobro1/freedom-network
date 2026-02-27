@@ -3,7 +3,6 @@ import os
 import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import webbrowser
-import time
 
 # Get the directory where this script is
 UI_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,20 +21,18 @@ class MyHTTPRequestHandler(SimpleHTTPRequestHandler):
 PORT = 8000
 SERVER_ADDRESS = ('127.0.0.1', PORT)
 
-print("🌐 Freedom Browser Web Server")
-print(f"📍 Starting web server on http://127.0.0.1:{PORT}")
-print("Press Ctrl+C to stop\n")
+print("Freedom VPN Server")
+print(f"Listening on http://127.0.0.1:{PORT}")
+print("Press Ctrl+C to stop.\n")
 
 server = HTTPServer(SERVER_ADDRESS, MyHTTPRequestHandler)
 
-# Open browser
-time.sleep(0.5)
 url = f"http://127.0.0.1:{PORT}"
-print(f"🚀 Opening browser at {url}...\n")
+print(f"Opening browser at {url}...\n")
 webbrowser.open(url)
 
 try:
     server.serve_forever()
 except KeyboardInterrupt:
-    print("\n\n👋 Server stopped")
+    print("\nServer stopped")
     sys.exit(0)

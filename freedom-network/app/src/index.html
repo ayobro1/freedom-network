@@ -3,104 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freedom Browser</title>
+    <title>Freedom VPN</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Sidebar with tabs -->
-        <aside class="sidebar">
-            <div class="sidebar-header">🌐</div>
-            <nav class="tabs">
-                <button class="tab-button active" data-tab="home">
-                    <span class="icon">🏠</span>
-                    <span class="label">Home</span>
-                </button>
-                <button class="tab-button" data-tab="chat">
-                    <span class="icon">💬</span>
-                    <span class="label">Chat</span>
-                </button>
-                <button class="tab-button" data-tab="example">
-                    <span class="icon">📖</span>
-                    <span class="label">Example</span>
-                </button>
-            </nav>
-            <div class="sidebar-footer">
-                <small id="connection-status">🔗 Loading...</small>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="status-pill">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="connection-status">Offline</span>
             </div>
-        </aside>
+            <button class="refresh-btn" id="refresh-btn" aria-label="Refresh stats">Refresh</button>
+        </header>
 
-        <!-- Main content -->
-        <main class="main-content">
-            <!-- Top bar -->
-            <div class="top-bar">
-                <button class="icon-btn" id="refresh-btn" title="Refresh">🔄</button>
-                <input 
-                    type="text" 
-                    id="address-bar" 
-                    class="address-bar" 
-                    placeholder="freedom://..." 
-                    autocomplete="off"
-                >
-                <button class="icon-btn" id="go-btn">→</button>
-            </div>
+        <main class="main-layout">
+            <h1>Freedom VPN</h1>
+            <p class="subtitle">Private routing and local proxy metrics.</p>
 
-            <!-- Content area -->
-            <div class="content-area">
-                <div class="page" id="home-page" style="display: block;">
-                    <h1>🏠 Welcome to Freedom Browser</h1>
-                    <p>You are browsing the decentralized Freedom Network 🌐</p>
-                    <p style="color: var(--accent-purple); font-size: 14px;">Standalone desktop application powered by Tauri + Rust</p>
-                    <h2>Quick Start:</h2>
-                    <ul>
-                        <li>Click the tabs on the left to switch sites</li>
-                        <li>Type addresses in the bar to navigate</li>
-                        <li>Type <code>freedom://chat</code> or <code>freedom://example</code></li>
-                    </ul>
-                    <h2>Network Status:</h2>
-                    <p>Backend: <strong id="node-status">Connecting...</strong></p>
-                    <p>Connected to: <strong>127.0.0.1:5000</strong></p>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-top: 20px;">
-                        Built with modern technologies:<br>
-                        Tauri for desktop • Rust for the network layer • QUIC protocol
-                    </p>
-                </div>
-
-                <div class="page" id="chat-page">
-                    <h1>💬 Freedom Chat</h1>
-                    <p>Welcome to Freedom Chat!</p>
-                    <p>A decentralized, peer-to-peer messaging platform.</p>
-                    <h2>Features:</h2>
-                    <ul>
-                        <li>End-to-end encrypted messages</li>
-                        <li>No central server required</li>
-                        <li>Anonymous messaging</li>
-                        <li>Message verification</li>
-                    </ul>
-                    <p>Start chatting with friends on the Freedom network!</p>
-                </div>
-
-                <div class="page" id="example-page">
-                    <h1>📖 Example Site</h1>
-                    <p>This is a demonstration site on the Freedom Network.</p>
-                    <h2>About the Freedom Network:</h2>
-                    <p>Built on QUIC protocol with:</p>
-                    <ul>
-                        <li>Multi-hop routing for privacy</li>
-                        <li>Cryptographic verification</li>
-                        <li>Decentralized peer discovery</li>
-                        <li>Content distribution</li>
-                    </ul>
-                    <p>Visit other sites by clicking tabs or typing in the address bar</p>
+            <div class="power-wrap">
+                <div class="power-ring" id="power-ring">
+                    <div class="power-inner" id="power-state">OFFLINE</div>
                 </div>
             </div>
 
-            <!-- Status bar -->
-            <div class="status-bar">
-                <span id="status-location">freedom://home</span>
-                <span style="flex: 1;"></span>
-                <span>🔒 Secure • 🌍 Decentralized</span>
-            </div>
+            <section class="stats-row">
+                <article class="stat-card"><span class="stat-label">Uptime</span><span class="stat-value" id="stat-uptime">—</span></article>
+                <article class="stat-card"><span class="stat-label">Active</span><span class="stat-value" id="stat-active">—</span></article>
+                <article class="stat-card"><span class="stat-label">Total</span><span class="stat-value" id="stat-total">—</span></article>
+                <article class="stat-card"><span class="stat-label">Sent</span><span class="stat-value" id="stat-sent">—</span></article>
+                <article class="stat-card"><span class="stat-label">Received</span><span class="stat-value" id="stat-recv">—</span></article>
+            </section>
+
+            <section class="proxy-card">
+                <h2>Proxy Setup</h2>
+                <div class="endpoint-row"><span>HTTP Proxy</span><code>127.0.0.1:8080</code></div>
+                <div class="endpoint-row"><span>QUIC Server</span><code>127.0.0.1:5000</code></div>
+                <div class="endpoint-row"><span>Dashboard API</span><code>127.0.0.1:9090</code></div>
+                <ol>
+                    <li>Open browser network/proxy settings.</li>
+                    <li>Set HTTP proxy to <code>127.0.0.1</code> and port <code>8080</code>.</li>
+                    <li>Keep Freedom VPN running while browsing.</li>
+                </ol>
+            </section>
         </main>
     </div>
 

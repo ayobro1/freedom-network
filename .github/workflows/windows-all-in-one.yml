@@ -1,0 +1,49 @@
+name: Windows All-in-One Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - copilot/improve-webui-design
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            freedom-network/node -> target
+            freedom-network/app/src-tauri -> target
+
+      - name: Run all-in-one Windows build script
+        shell: cmd
+        run: |
+          cd freedom-network
+          scripts\windows-all-in-one-installer.bat --no-sync
+
+      - name: Upload all-in-one zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreedomNetwork-Windows-AllInOne
+          path: freedom-network/FreedomNetwork-Windows-AllInOne.zip
+          if-no-files-found: error
+
+      - name: Upload full Windows dist folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreedomNetwork-Windows-dist
+          path: freedom-network/dist-windows/
+          if-no-files-found: error
