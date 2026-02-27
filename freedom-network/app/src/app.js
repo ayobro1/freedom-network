@@ -1,201 +1,80 @@
-// Tauri app integration
-async function initTauri() {
-    // Try to get Tauri API
-    try {
-        const { invoke } = window.__TAURI__ || {};
-        if (!invoke) {
-            console.log('Tauri not available, running in standalone mode');
-            initStandalone();
-            return;
-        }
-        
-        // Check node status
-        const status = await invoke('get_node_status');
-        console.log('Node status:', status);
-        document.getElementById('node-status').textContent = status;
-        document.getElementById('connection-status').textContent = '✓ Connected';
-        
-        // Store invoke for later use
-        window.tauriInvoke = invoke;
-        
-    } catch (error) {
-        console.log('Tauri invoke failed:', error);
-        initStandalone();
-    }
-}
-
-// Standalone mode (no Tauri)
-function initStandalone() {
-    document.getElementById('node-status').textContent = '127.0.0.1:5000';
-    document.getElementById('connection-status').innerHTML = '✓ Ready';
-}
-
-// Render .fdom content to HTML
-async function renderFdom(fdomSource) {
-    if (!window.tauriInvoke) {
-        console.error('Tauri not available');
-        return null;
-    }
-    
-    try {
-        const html = await window.tauriInvoke('render_fdom', { fdomSource });
-        return html;
-    } catch (error) {
-        console.error('Failed to render .fdom:', error);
-        return null;
-    }
-}
-
-// Load .fdom file from filesystem
-async function loadFdomFile(filePath) {
-    if (!window.tauriInvoke) {
-        console.error('Tauri not available');
-        return null;
-    }
-    
-    try {
-        const html = await window.tauriInvoke('load_fdom_file', { filePath });
-        return html;
-    } catch (error) {
-        console.error('Failed to load .fdom file:', error);
-        return null;
-    }
-}
-
-// Fetch and render freedom site
-async function fetchFreedomSite(domain, path) {
-    if (!window.tauriInvoke) {
-        console.error('Tauri not available');
-        return null;
-    }
-    
-    try {
-        const html = await window.tauriInvoke('fetch_freedom_site', { domain, path });
-        return html;
-    } catch (error) {
-        console.error('Failed to fetch freedom site:', error);
-        return null;
-    }
-}
-
-// Tab switching functionality
-const tabButtons = document.querySelectorAll('.tab-button');
-const pages = document.querySelectorAll('.page');
-const addressBar = document.getElementById('address-bar');
-const statusLocation = document.getElementById('status-location');
 const refreshBtn = document.getElementById('refresh-btn');
-const goBtn = document.getElementById('go-btn');
+const statusDot = document.getElementById('status-dot');
+const connectionStatus = document.getElementById('connection-status');
+const powerRing = document.getElementById('power-ring');
+const powerState = document.getElementById('power-state');
 
-// Map tabs to pages and URLs
-const tabMap = {
-    'home': { page: 'home-page', url: 'freedom://home' },
-    'chat': { page: 'chat-page', url: 'freedom://chat' },
-    'example': { page: 'example-page', url: 'freedom://example' }
-};
+const NODE_API = 'http://127.0.0.1:9090';
+const STAT_IDS = ['stat-uptime', 'stat-active', 'stat-total', 'stat-sent', 'stat-recv'];
 
-// Handle tab button clicks
-tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const tabName = button.getAttribute('data-tab');
-        switchTab(tabName);
-    });
-});
-
-// Handle address bar submission
-addressBar.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        navigateTo(addressBar.value);
-    }
-});
-
-goBtn.addEventListener('click', () => {
-    navigateTo(addressBar.value);
-});
-
-// Handle refresh button
 refreshBtn.addEventListener('click', () => {
-    refreshBtn.style.animation = 'spin 0.6s ease-in-out';
-    refreshBtn.addEventListener('animationend', () => {
-        refreshBtn.style.animation = '';
-    }, { once: true });
+    refreshBtn.disabled = true;
+    fetchNodeStats();
+    setTimeout(() => {
+        refreshBtn.disabled = false;
+    }, 350);
 });
 
-// Switch to a tab
-function switchTab(tabName) {
-    // Update active tab button
-    tabButtons.forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-tab') === tabName) {
-            btn.classList.add('active');
-        }
-    });
-
-    // Update active page
-    pages.forEach(page => page.classList.remove('active'));
-    const pageId = tabMap[tabName].page;
-    const activePage = document.getElementById(pageId);
-    if (activePage) {
-        activePage.classList.add('active');
-    }
-
-    // Update address bar and status
-    const url = tabMap[tabName].url;
-    addressBar.value = '';
-    statusLocation.textContent = url;
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
 }
 
-// Navigate to a URL
-function navigateTo(url) {
-    if (!url.trim()) return;
-
-    // Normalize URL
-    const normalizedUrl = url.includes('://') ? url : `freedom://${url}`;
-    
-    // Determine which tab to switch to
-    let tabName = 'home';
-    if (normalizedUrl.includes('chat')) {
-        tabName = 'chat';
-    } else if (normalizedUrl.includes('example')) {
-        tabName = 'example';
-    }
-
-    // Switch to the appropriate tab
-    switchTab(tabName);
-    
-    // Clear the address bar
-    addressBar.value = '';
-    addressBar.focus();
+function formatUptime(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) return days + 'd ' + (hours % 24) + 'h';
+    if (hours > 0) return hours + 'h ' + (minutes % 60) + 'm';
+    if (minutes > 0) return minutes + 'm ' + (seconds % 60) + 's';
+    return seconds + 's';
 }
 
-// Add spin animation for refresh button
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
-
-// Set initial active tab
-switchTab('home');
-
-// Listen for address bar changes to update location hint
-addressBar.addEventListener('input', (e) => {
-    if (e.target.value) {
-        const hint = e.target.value.includes('://') 
-            ? e.target.value 
-            : `freedom://${e.target.value}`;
-        statusLocation.textContent = `Going to: ${hint}`;
+function setNodeOnline(online) {
+    if (online) {
+        statusDot.classList.add('online');
+        connectionStatus.textContent = 'Online';
+        powerRing.classList.add('online');
+        powerState.textContent = 'ONLINE';
     } else {
-        statusLocation.textContent = 'freedom://home';
+        statusDot.classList.remove('online');
+        connectionStatus.textContent = 'Offline';
+        powerRing.classList.remove('online');
+        powerState.textContent = 'OFFLINE';
     }
-});
+}
 
-// Initialize
-console.log('🌐 Freedom Browser - Standalone Desktop Application');
-console.log('Backend: 127.0.0.1:5000 (Rust QUIC Node)');
-console.log('Frontend: Tauri Desktop App (HTML/CSS/JS)');
+async function fetchNodeStats() {
+    try {
+        const [statusResp, statsResp] = await Promise.all([
+            fetch(`${NODE_API}/api/status`),
+            fetch(`${NODE_API}/api/stats`)
+        ]);
 
-// Check for Tauri and initialize
-window.addEventListener('DOMContentLoaded', initTauri);
+        if (!statusResp.ok || !statsResp.ok) throw new Error('Bad response');
+
+        const status = await statusResp.json();
+        const stats = await statsResp.json();
+
+        document.getElementById('stat-uptime').textContent = formatUptime(status.uptime_ms);
+        document.getElementById('stat-active').textContent = status.connections_active;
+        document.getElementById('stat-total').textContent = status.connections_total;
+        document.getElementById('stat-sent').textContent = formatBytes(stats.bytes_sent);
+        document.getElementById('stat-recv').textContent = formatBytes(stats.bytes_received);
+
+        setNodeOnline(true);
+    } catch (e) {
+        setNodeOnline(false);
+        STAT_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '—';
+        });
+    }
+}
+
+fetchNodeStats();
+setInterval(fetchNodeStats, 2000);
