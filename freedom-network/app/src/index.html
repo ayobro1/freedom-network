@@ -3,221 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freedom — Secure Tunneling</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #000000;
-            color: #f5f5f7;
-            -webkit-font-smoothing: antialiased;
-        }
-        .apple-card {
-            background: #1c1c1e;
-            border-radius: 22px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-primary {
-            background: #ffffff;
-            color: #000000;
-            border-radius: 980px;
-            transition: all 0.2s ease;
-        }
-        .btn-primary:hover {
-            background: #e8e8ed;
-            transform: scale(1.02);
-        }
-        .power-ring {
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            border: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.8s ease;
-        }
-        .power-ring.online {
-            border-color: #0071e3;
-            box-shadow: 0 0 50px rgba(0, 113, 227, 0.2);
-        }
-        input[type="checkbox"] {
-            accent-color: #0071e3;
-        }
-        select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2386868b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1rem;
-        }
-        .status-dot.online {
-            background-color: #22c55e;
-        }
-    </style>
+    <title>Freedom</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen">
+<body>
 
-    <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
-        <div class="max-w-screen-xl mx-auto px-6 h-12 flex items-center justify-between">
-            <span class="text-sm font-semibold tracking-tight">Freedom</span>
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                    <div id="status-dot" class="status-dot w-1.5 h-1.5 rounded-full bg-orange-500"></div>
-                    <span id="connection-status" class="text-[11px] text-[#86868b] uppercase tracking-widest font-medium">Ready</span>
-                </div>
-                <button id="refresh-btn" class="text-[12px] text-[#0071e3] hover:underline">Refresh</button>
-            </div>
-        </div>
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">Freedom</div>
+    <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="connection">
+            <span class="nav-icon">&#9678;</span>
+            <span>Connection</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+            <span class="nav-icon">&#9881;</span>
+            <span>Settings</span>
+        </button>
+        <button class="nav-item" data-view="diagnostics">
+            <span class="nav-icon">&#9881;</span>
+            <span>Diagnostics</span>
+        </button>
     </nav>
+    <div class="sidebar-footer">
+        <span class="status-indicator" id="status-dot"></span>
+        <span id="connection-status">Offline</span>
+    </div>
+</aside>
 
-    <main class="w-full max-w-4xl px-6 py-24 space-y-16">
-
-        <section class="text-center space-y-4">
-            <h1 class="text-5xl md:text-6xl font-semibold tracking-tight">Privacy. Everywhere.</h1>
-            <p class="text-xl md:text-2xl text-[#86868b] max-w-xl mx-auto">High-performance private routing with native local proxying.</p>
-        </section>
-
-        <section class="flex flex-col items-center py-8">
-            <div class="power-ring" id="power-ring">
-                <button id="connect-btn" class="flex flex-col items-center justify-center space-y-2 group">
-                    <span id="power-state" class="text-4xl font-light tracking-tight group-hover:text-blue-500 transition-colors">Start</span>
-                    <span class="text-[10px] text-[#86868b] uppercase tracking-[0.2em]">Encrypted</span>
-                </button>
+<!-- Main -->
+<div class="main">
+    <header class="topbar">
+        <span class="topbar-title" id="view-title">Connection</span>
+        <div class="topbar-actions">
+            <div class="topbar-status">
+                <span id="topbar-state">Disconnected</span>
             </div>
-        </section>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <article class="apple-card p-8">
-                <h3 class="text-lg font-medium mb-6">Configuration</h3>
-                <div class="space-y-6">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-[#86868b]">Tunnel Mode</span>
-                        <select id="mode-select" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
-                            <option value="full">Full System</option>
-                            <option value="app">Single App</option>
-                        </select>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-[#86868b]">Location</span>
-                        <select id="location-select" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
-                            <option value="fastest">Fastest</option>
-                        </select>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-[#86868b]">Network Protocol</span>
-                        <select id="protocol-select" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
-                            <option value="auto">Automatic</option>
-                            <option value="quic">QUIC</option>
-                            <option value="tcp">TCP</option>
-                        </select>
-                    </div>
-                    <div class="pt-4 space-y-4 border-t border-white/5">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-sm text-[#86868b]">Kill Switch</span>
-                            <input type="checkbox" id="kill-switch" class="w-4 h-4 rounded-full">
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-sm text-[#86868b]">Threat Protection</span>
-                            <input type="checkbox" id="threat-protection" class="w-4 h-4 rounded-full">
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-sm text-[#86868b]">DNS Protection</span>
-                            <input type="checkbox" id="dns-protection" class="w-4 h-4 rounded-full">
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-sm text-[#86868b]">System Intercept (Windows)</span>
-                            <input type="checkbox" id="strict-enforcement" class="w-4 h-4 rounded-full">
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-sm text-[#86868b]">Auto Connect</span>
-                            <input type="checkbox" id="auto-connect" class="w-4 h-4 rounded-full">
-                        </label>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-[#86868b]">Auto-Connect Rule</span>
-                        <select id="auto-connect-rule" class="bg-transparent text-sm font-medium focus:outline-none pr-6 cursor-pointer">
-                            <option value="startup">On Startup</option>
-                            <option value="untrusted">Untrusted Wi-Fi</option>
-                            <option value="off">Off</option>
-                        </select>
-                    </div>
-                    <div class="space-y-2">
-                        <span class="text-sm text-[#86868b]">Split Tunneling (app names, one per line)</span>
-                        <textarea id="split-tunnel-apps" class="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none" rows="4" placeholder="chrome.exe
-discord.exe"></textarea>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="sync-split-btn" class="btn-primary px-4 py-2 text-sm font-medium">Apply Split Apps</button>
-                        <button id="stop-split-btn" class="btn-primary px-4 py-2 text-sm font-medium">Stop Split Apps</button>
-                    </div>
-                    <p id="split-running" class="text-xs text-[#9ca3af]">Split apps running: none</p>
-                    <button id="save-settings-btn" class="btn-primary px-4 py-2 text-sm font-medium">Save Options</button>
-                </div>
-            </article>
-
-            <article class="apple-card p-8 flex flex-col justify-between">
-                <h3 class="text-lg font-medium mb-6">Live Traffic</h3>
-                <div class="grid grid-cols-2 gap-y-8">
-                    <div>
-                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Uptime</span>
-                        <span id="stat-uptime" class="text-2xl font-light">—</span>
-                    </div>
-                    <div>
-                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Active</span>
-                        <span id="stat-active" class="text-2xl font-light">—</span>
-                    </div>
-                    <div>
-                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Total</span>
-                        <span id="stat-total" class="text-2xl font-light">—</span>
-                    </div>
-                    <div>
-                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Sent</span>
-                        <span id="stat-sent" class="text-2xl font-light text-blue-500">—</span>
-                    </div>
-                    <div>
-                        <span class="block text-[11px] text-[#86868b] uppercase tracking-wider mb-1">Received</span>
-                        <span id="stat-recv" class="text-2xl font-light text-purple-400">—</span>
-                    </div>
-                </div>
-            </article>
+            <button class="btn-sm" id="refresh-btn">Refresh</button>
         </div>
+    </header>
 
-        <section class="apple-card p-8 bg-[#111112]">
-            <h3 class="text-sm font-medium mb-4 text-[#86868b]">Local Proxy Gateways</h3>
-            <div class="flex flex-wrap gap-12 text-sm">
-                <div>
-                    <span class="block text-[#444] text-[10px] uppercase font-bold tracking-widest mb-1">HTTP Proxy</span>
-                    <code>127.0.0.1:8080</code>
+    <div class="content">
+
+        <!-- ── Connection view ── -->
+        <section class="view active" id="view-connection">
+            <div class="connect-hero">
+                <button class="power-btn" id="connect-btn">
+                    <span class="power-btn-label" id="power-state">Connect</span>
+                </button>
+                <div class="connect-info">
+                    <span class="connect-title" id="connect-title">Not connected</span>
+                    <span class="connect-sub">Encrypted tunnel via local proxy</span>
                 </div>
-                <div>
-                    <span class="block text-[#444] text-[10px] uppercase font-bold tracking-widest mb-1">QUIC Server</span>
-                    <code>127.0.0.1:5000</code>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Traffic</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" id="stat-uptime">&mdash;</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Active</span>
+                        <span class="stat-value" id="stat-active">&mdash;</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total</span>
+                        <span class="stat-value" id="stat-total">&mdash;</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Sent</span>
+                        <span class="stat-value" id="stat-sent">&mdash;</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Received</span>
+                        <span class="stat-value" id="stat-recv">&mdash;</span>
+                    </div>
                 </div>
-                <div>
-                    <span class="block text-[#444] text-[10px] uppercase font-bold tracking-widest mb-1">Dashboard API</span>
-                    <code>127.0.0.1:9090</code>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Local Proxy Gateways</div>
+                <div class="proxy-row"><span>HTTP Proxy</span><code>127.0.0.1:8080</code></div>
+                <div class="proxy-row"><span>QUIC Server</span><code>127.0.0.1:5000</code></div>
+                <div class="proxy-row"><span>Dashboard API</span><code>127.0.0.1:9090</code></div>
+            </div>
+        </section>
+
+        <!-- ── Settings view ── -->
+        <section class="view" id="view-settings">
+            <div class="card">
+                <div class="card-header">Tunnel</div>
+                <div class="setting-row">
+                    <span class="setting-label">Mode</span>
+                    <select id="mode-select">
+                        <option value="full">Full System</option>
+                        <option value="app">Single App</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Location</span>
+                    <select id="location-select">
+                        <option value="fastest">Fastest</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Protocol</span>
+                    <select id="protocol-select">
+                        <option value="auto">Automatic</option>
+                        <option value="quic">QUIC</option>
+                        <option value="tcp">TCP</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Protection</div>
+                <div class="setting-row">
+                    <span class="setting-label">Kill Switch</span>
+                    <label class="toggle"><input type="checkbox" id="kill-switch"><span class="toggle-track"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Threat Protection</span>
+                    <label class="toggle"><input type="checkbox" id="threat-protection"><span class="toggle-track"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">DNS Protection</span>
+                    <label class="toggle"><input type="checkbox" id="dns-protection"><span class="toggle-track"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">System Intercept (Windows)</span>
+                    <label class="toggle"><input type="checkbox" id="strict-enforcement"><span class="toggle-track"></span></label>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Auto-Connect</div>
+                <div class="setting-row">
+                    <span class="setting-label">Auto Connect</span>
+                    <label class="toggle"><input type="checkbox" id="auto-connect"><span class="toggle-track"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Rule</span>
+                    <select id="auto-connect-rule">
+                        <option value="startup">On Startup</option>
+                        <option value="untrusted">Untrusted Wi-Fi</option>
+                        <option value="off">Off</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Split Tunneling</div>
+                <textarea id="split-tunnel-apps" rows="3" placeholder="One app per line, e.g. chrome.exe"></textarea>
+                <div class="btn-row">
+                    <button class="btn" id="sync-split-btn">Apply</button>
+                    <button class="btn" id="stop-split-btn">Stop</button>
+                </div>
+                <div class="split-status" id="split-running">Split apps running: none</div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+            </div>
+        </section>
+
+        <!-- ── Diagnostics view ── -->
+        <section class="view" id="view-diagnostics">
+            <div class="card">
+                <div class="card-header">Network Diagnostics</div>
+                <div class="btn-row" style="margin-top:0">
+                    <button class="btn" id="run-diagnostics-btn">Run Diagnostics</button>
+                </div>
+                <pre class="diag-output" id="diagnostics-output">No diagnostics run yet.</pre>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Profiles</div>
+                <div class="btn-row" style="margin-top:0">
+                    <button class="btn" id="export-profile-btn">Export Profile</button>
+                    <label class="file-label">
+                        Import Profile
+                        <input id="import-profile-file" type="file" accept="application/json">
+                    </label>
                 </div>
             </div>
         </section>
 
-        <section class="apple-card p-8">
-            <h3 class="text-sm font-medium mb-4 text-[#86868b]">Diagnostics & Profiles</h3>
-            <div class="flex flex-wrap gap-3 mb-4">
-                <button id="run-diagnostics-btn" class="btn-primary px-4 py-2 text-sm font-medium">Run Diagnostics</button>
-                <button id="export-profile-btn" class="btn-primary px-4 py-2 text-sm font-medium">Export Profile</button>
-                <label class="btn-primary px-4 py-2 text-sm font-medium cursor-pointer">
-                    Import Profile
-                    <input id="import-profile-file" type="file" accept="application/json" class="hidden" />
-                </label>
-            </div>
-            <pre id="diagnostics-output" class="text-xs text-[#9ca3af] bg-black/30 border border-white/10 rounded-xl p-3 overflow-auto">No diagnostics yet.</pre>
-        </section>
+    </div>
+</div>
 
-    </main>
-
-    <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
-  "productName": "Freedom Browser",
+  "productName": "Freedom",
   "version": "1.0.0",
-  "identifier": "com.freedom.browser",
+  "identifier": "com.freedom.vpn",
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
@@ -10,11 +10,11 @@
   "app": {
     "windows": [
       {
-        "title": "Freedom Browser",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
+        "title": "Freedom",
+        "width": 900,
+        "height": 580,
+        "minWidth": 700,
+        "minHeight": 480,
         "resizable": true,
         "fullscreen": false,
         "transparent": false

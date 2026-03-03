@@ -1,10 +1,13 @@
+/* ── DOM refs ── */
 const refreshBtn = document.getElementById('refresh-btn');
 const connectBtn = document.getElementById('connect-btn');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
 const statusDot = document.getElementById('status-dot');
 const connectionStatus = document.getElementById('connection-status');
-const powerRing = document.getElementById('power-ring');
 const powerState = document.getElementById('power-state');
+const connectTitle = document.getElementById('connect-title');
+const topbarState = document.getElementById('topbar-state');
+const viewTitle = document.getElementById('view-title');
 const modeSelect = document.getElementById('mode-select');
 const locationSelect = document.getElementById('location-select');
 const protocolSelect = document.getElementById('protocol-select');
@@ -30,27 +33,41 @@ const tauriInvoke = window.__TAURI__?.core?.invoke;
 let vpnConnected = false;
 let strictEnforcementActive = false;
 
-refreshBtn.addEventListener('click', () => {
+/* ── View switching ── */
+const VIEW_TITLES = { connection: 'Connection', settings: 'Settings', diagnostics: 'Diagnostics' };
+
+document.querySelectorAll('.nav-item[data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-view');
+        document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+        var target = document.getElementById('view-' + id);
+        if (target) target.classList.add('active');
+        viewTitle.textContent = VIEW_TITLES[id] || id;
+    });
+});
+
+/* ── Helpers ── */
+refreshBtn.addEventListener('click', function () {
     refreshBtn.disabled = true;
     fetchNodeStats();
-    setTimeout(() => {
-        refreshBtn.disabled = false;
-    }, 350);
+    setTimeout(function () { refreshBtn.disabled = false; }, 350);
 });
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    var k = 1024;
+    var sizes = ['B', 'KB', 'MB', 'GB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
     return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
 }
 
 function formatUptime(ms) {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
+    var seconds = Math.floor(ms / 1000);
+    var minutes = Math.floor(seconds / 60);
+    var hours = Math.floor(minutes / 60);
+    var days = Math.floor(hours / 24);
     if (days > 0) return days + 'd ' + (hours % 24) + 'h';
     if (hours > 0) return hours + 'h ' + (minutes % 60) + 'm';
     if (minutes > 0) return minutes + 'm ' + (seconds % 60) + 's';
@@ -61,17 +78,21 @@ function setNodeOnline(online) {
     if (online) {
         statusDot.classList.add('online');
         if (strictEnforcementActive) {
-            connectionStatus.textContent = 'Protected+Intercept';
+            connectionStatus.textContent = 'Protected + Intercept';
         } else {
             connectionStatus.textContent = vpnConnected ? 'Protected' : 'Online';
         }
-        powerRing.classList.add('online');
-        powerState.textContent = vpnConnected ? 'PROTECTED' : 'ONLINE';
+        connectBtn.classList.add('connected');
+        powerState.textContent = vpnConnected ? 'Protected' : 'Online';
+        connectTitle.textContent = vpnConnected ? 'Connected — traffic routed' : 'Node online';
+        topbarState.textContent = vpnConnected ? 'Protected' : 'Online';
     } else {
         statusDot.classList.remove('online');
         connectionStatus.textContent = 'Offline';
-        powerRing.classList.remove('online');
-        powerState.textContent = 'OFFLINE';
+        connectBtn.classList.remove('connected');
+        powerState.textContent = 'Connect';
+        connectTitle.textContent = 'Not connected';
+        topbarState.textContent = 'Disconnected';
     }
 }
 
@@ -88,7 +109,7 @@ function getSettingsPayload() {
         autoConnectRule: autoConnectRule.value,
         splitTunnelApps: splitTunnelApps.value
             .split(/\r?\n/)
-            .map(v => v.trim())
+            .map(function (v) { return v.trim(); })
             .filter(Boolean)
     };
 }
@@ -109,22 +130,23 @@ function applySettingsToForm(settings) {
 }
 
 function updateConnectButton() {
-    connectBtn.textContent = vpnConnected ? 'Disconnect' : 'Connect';
+    powerState.textContent = vpnConnected ? 'Disconnect' : 'Connect';
 }
 
 function updateSplitRunning(status) {
-    const running = Array.isArray(status?.splitTunnelRunning)
+    var running = Array.isArray(status?.splitTunnelRunning)
         ? status.splitTunnelRunning
         : [];
     splitRunning.textContent = running.length
-        ? `Split apps running: ${running.join(', ')}`
+        ? 'Split apps running: ' + running.join(', ')
         : 'Split apps running: none';
 }
 
+/* ── Tauri commands ── */
 async function syncVpnStatus() {
     if (!tauriInvoke) return;
     try {
-        const status = await tauriInvoke('get_vpn_status');
+        var status = await tauriInvoke('get_vpn_status');
         vpnConnected = !!status.connected;
         strictEnforcementActive = !!status.strictEnforcementActive;
         applySettingsToForm(status.settings || {});
@@ -139,13 +161,13 @@ async function syncVpnStatus() {
 async function loadLocationProfiles() {
     if (!tauriInvoke) return;
     try {
-        const profiles = await tauriInvoke('get_location_profiles');
-        const current = locationSelect.value;
+        var profiles = await tauriInvoke('get_location_profiles');
+        var current = locationSelect.value;
         locationSelect.innerHTML = '';
-        profiles.forEach(profile => {
-            const option = document.createElement('option');
+        profiles.forEach(function (profile) {
+            var option = document.createElement('option');
             option.value = profile.id;
-            option.textContent = `${profile.label} (${profile.region})`;
+            option.textContent = profile.label + ' (' + profile.region + ')';
             locationSelect.appendChild(option);
         });
         locationSelect.value = current || 'fastest';
@@ -162,15 +184,15 @@ async function toggleVpnConnection() {
 
     connectBtn.disabled = true;
     try {
-        const command = vpnConnected ? 'stop_vpn' : 'start_vpn';
-        const status = await tauriInvoke(command);
+        var command = vpnConnected ? 'stop_vpn' : 'start_vpn';
+        var status = await tauriInvoke(command);
         vpnConnected = !!status.connected;
         strictEnforcementActive = !!status.strictEnforcementActive;
         updateSplitRunning(status);
         updateConnectButton();
         await fetchNodeStats();
     } catch (error) {
-        alert(`VPN action failed: ${error}`);
+        alert('VPN action failed: ' + error);
     } finally {
         connectBtn.disabled = false;
     }
@@ -184,7 +206,7 @@ async function saveVpnSettings() {
 
     saveSettingsBtn.disabled = true;
     try {
-        const status = await tauriInvoke('update_vpn_settings', {
+        var status = await tauriInvoke('update_vpn_settings', {
             settings: getSettingsPayload()
         });
         vpnConnected = !!status.connected;
@@ -192,7 +214,7 @@ async function saveVpnSettings() {
         updateSplitRunning(status);
         updateConnectButton();
     } catch (error) {
-        alert(`Failed to save settings: ${error}`);
+        alert('Failed to save settings: ' + error);
     } finally {
         saveSettingsBtn.disabled = false;
     }
@@ -206,11 +228,11 @@ async function syncSplitTunnelApps() {
 
     syncSplitBtn.disabled = true;
     try {
-        const status = await tauriInvoke('sync_split_tunnel_apps');
+        var status = await tauriInvoke('sync_split_tunnel_apps');
         strictEnforcementActive = !!status.strictEnforcementActive;
         updateSplitRunning(status);
     } catch (error) {
-        alert(`Failed to apply split tunnel apps: ${error}`);
+        alert('Failed to apply split tunnel apps: ' + error);
     } finally {
         syncSplitBtn.disabled = false;
     }
@@ -224,11 +246,11 @@ async function stopSplitTunnelApps() {
 
     stopSplitBtn.disabled = true;
     try {
-        const status = await tauriInvoke('stop_split_tunnel_apps');
+        var status = await tauriInvoke('stop_split_tunnel_apps');
         strictEnforcementActive = !!status.strictEnforcementActive;
         updateSplitRunning(status);
     } catch (error) {
-        alert(`Failed to stop split tunnel apps: ${error}`);
+        alert('Failed to stop split tunnel apps: ' + error);
     } finally {
         stopSplitBtn.disabled = false;
     }
@@ -247,15 +269,15 @@ async function runDiagnostics() {
     runDiagnosticsBtn.disabled = true;
     diagnosticsOutput.textContent = 'Running diagnostics...';
     try {
-        const diag = await tauriInvoke('run_diagnostics');
+        var diag = await tauriInvoke('run_diagnostics');
         diagnosticsOutput.textContent = [
-            `Dashboard: ${formatDiagBool(diag.dashboardReachable)} (${diag.dashboardLatencyMs ?? '-'} ms)`,
-            `Proxy: ${formatDiagBool(diag.proxyReachable)} (${diag.proxyLatencyMs ?? '-'} ms)`,
-            `QUIC: ${formatDiagBool(diag.quicReachable)} (${diag.quicLatencyMs ?? '-'} ms)`,
-            `Sample duration: ${diag.timestampMs} ms`
+            'Dashboard: ' + formatDiagBool(diag.dashboardReachable) + ' (' + (diag.dashboardLatencyMs ?? '-') + ' ms)',
+            'Proxy:     ' + formatDiagBool(diag.proxyReachable) + ' (' + (diag.proxyLatencyMs ?? '-') + ' ms)',
+            'QUIC:      ' + formatDiagBool(diag.quicReachable) + ' (' + (diag.quicLatencyMs ?? '-') + ' ms)',
+            'Duration:  ' + diag.timestampMs + ' ms'
         ].join('\n');
     } catch (error) {
-        diagnosticsOutput.textContent = `Diagnostics failed: ${error}`;
+        diagnosticsOutput.textContent = 'Diagnostics failed: ' + error;
     } finally {
         runDiagnosticsBtn.disabled = false;
     }
@@ -268,10 +290,10 @@ async function exportProfile() {
     }
 
     try {
-        const profileJson = await tauriInvoke('export_vpn_profile');
-        const blob = new Blob([profileJson], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        var profileJson = await tauriInvoke('export_vpn_profile');
+        var blob = new Blob([profileJson], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
         link.href = url;
         link.download = 'freedom-vpn-profile.json';
         document.body.appendChild(link);
@@ -279,7 +301,7 @@ async function exportProfile() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     } catch (error) {
-        alert(`Failed to export profile: ${error}`);
+        alert('Failed to export profile: ' + error);
     }
 }
 
@@ -289,34 +311,35 @@ async function importProfile(event) {
         return;
     }
 
-    const file = event.target.files?.[0];
+    var file = event.target.files?.[0];
     if (!file) return;
 
     try {
-        const profileJson = await file.text();
-        const status = await tauriInvoke('import_vpn_profile', { profileJson });
+        var profileJson = await file.text();
+        var status = await tauriInvoke('import_vpn_profile', { profileJson: profileJson });
         vpnConnected = !!status.connected;
         applySettingsToForm(status.settings || {});
         updateConnectButton();
         await saveVpnSettings();
     } catch (error) {
-        alert(`Failed to import profile: ${error}`);
+        alert('Failed to import profile: ' + error);
     } finally {
         importProfileFile.value = '';
     }
 }
 
+/* ── Stats polling ── */
 async function fetchNodeStats() {
     try {
-        const [statusResp, statsResp] = await Promise.all([
-            fetch(`${NODE_API}/api/status`),
-            fetch(`${NODE_API}/api/stats`)
+        var responses = await Promise.all([
+            fetch(NODE_API + '/api/status'),
+            fetch(NODE_API + '/api/stats')
         ]);
 
-        if (!statusResp.ok || !statsResp.ok) throw new Error('Bad response');
+        if (!responses[0].ok || !responses[1].ok) throw new Error('Bad response');
 
-        const status = await statusResp.json();
-        const stats = await statsResp.json();
+        var status = await responses[0].json();
+        var stats = await responses[1].json();
 
         document.getElementById('stat-uptime').textContent = formatUptime(status.uptime_ms);
         document.getElementById('stat-active').textContent = status.connections_active;
@@ -327,13 +350,14 @@ async function fetchNodeStats() {
         setNodeOnline(true);
     } catch (e) {
         setNodeOnline(vpnConnected);
-        STAT_IDS.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '—';
+        STAT_IDS.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = '\u2014';
         });
     }
 }
 
+/* ── Event listeners ── */
 connectBtn.addEventListener('click', toggleVpnConnection);
 saveSettingsBtn.addEventListener('click', saveVpnSettings);
 syncSplitBtn.addEventListener('click', syncSplitTunnelApps);
@@ -342,6 +366,7 @@ runDiagnosticsBtn.addEventListener('click', runDiagnostics);
 exportProfileBtn.addEventListener('click', exportProfile);
 importProfileFile.addEventListener('change', importProfile);
 
+/* ── Init ── */
 loadLocationProfiles();
 syncVpnStatus();
 fetchNodeStats();
