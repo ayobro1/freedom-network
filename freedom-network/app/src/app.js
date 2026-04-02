@@ -153,7 +153,7 @@ function setRuntimeUiState() {
         runDiagnosticsBtn,
         exportProfileBtn,
         importProfileFile
-    ].forEach(function (el) {
+    ].forEach((el) => {
         if (el) el.disabled = true;
     });
     topbarState.textContent = 'Browser Preview';
