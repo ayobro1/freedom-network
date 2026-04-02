@@ -102,6 +102,8 @@ body{
   padding:12px 20px;
   border-bottom:1px solid var(--border);
   min-height:44px;
+  background:rgba(28,28,30,.72);
+  backdrop-filter:blur(8px);
 }
 .topbar-title{font-size:13px;font-weight:600}
 .topbar-actions{display:flex;align-items:center;gap:10px}
@@ -175,6 +177,7 @@ body{
   border-radius:var(--radius);
   padding:16px;
   margin-bottom:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
 }
 .card-header{
   font-size:11px;
@@ -305,10 +308,12 @@ textarea::placeholder{color:var(--text-secondary)}
 }
 .btn:hover{background:var(--surface-hover);border-color:#555}
 .btn:disabled{opacity:.5;cursor:default}
+.btn[disabled],.btn-sm[disabled],.power-btn[disabled]{opacity:.55;cursor:not-allowed}
 .btn-primary{
   background:var(--accent);
   border-color:var(--accent);
   color:#fff;
+  box-shadow:0 6px 16px rgba(10,132,255,.28);
 }
 .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
