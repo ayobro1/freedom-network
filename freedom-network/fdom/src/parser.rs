@@ -148,6 +148,15 @@ impl Parser {
         let mut children = Vec::new();
         
         while !matches!(self.current_token(), Token::CloseBrace | Token::Eof) {
+            if let Token::String(text) = self.current_token() {
+                children.push(AstNode::Text(text.clone()));
+                self.advance();
+                if matches!(self.current_token(), Token::Comma) {
+                    self.advance();
+                }
+                continue;
+            }
+
             // Try to parse as attribute (key = value)
             if matches!(self.current_token(), Token::Identifier(_)) {
                 if let Token::Identifier(ref key) = self.current_token() {

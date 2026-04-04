@@ -28,7 +28,8 @@ const importProfileFile = document.getElementById('import-profile-file');
 
 const NODE_API = 'http://127.0.0.1:9090';
 const STAT_IDS = ['stat-uptime', 'stat-active', 'stat-total', 'stat-sent', 'stat-recv'];
-const tauriInvoke = window.__TAURI__?.core?.invoke;
+const tauriInvoke = window.__TAURI__?.core?.invoke || window.__TAURI_INTERNALS__?.invoke;
+const hasDesktopRuntime = typeof tauriInvoke === 'function';
 
 let vpnConnected = false;
 let strictEnforcementActive = false;
@@ -140,6 +141,23 @@ function updateSplitRunning(status) {
     splitRunning.textContent = running.length
         ? 'Split apps running: ' + running.join(', ')
         : 'Split apps running: none';
+}
+
+function setRuntimeUiState() {
+    if (hasDesktopRuntime) return;
+    [
+        connectBtn,
+        saveSettingsBtn,
+        syncSplitBtn,
+        stopSplitBtn,
+        runDiagnosticsBtn,
+        exportProfileBtn,
+        importProfileFile
+    ].forEach((el) => {
+        if (el) el.disabled = true;
+    });
+    topbarState.textContent = 'Browser Preview';
+    diagnosticsOutput.textContent = 'Desktop-only actions are disabled in browser preview mode.';
 }
 
 /* ── Tauri commands ── */
@@ -367,6 +385,7 @@ exportProfileBtn.addEventListener('click', exportProfile);
 importProfileFile.addEventListener('change', importProfile);
 
 /* ── Init ── */
+setRuntimeUiState();
 loadLocationProfiles();
 syncVpnStatus();
 fetchNodeStats();
